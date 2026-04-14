@@ -6,4 +6,5 @@ build/
 coverage/
 tools/
 sample-projects/
+generated_samples/
 *.log
