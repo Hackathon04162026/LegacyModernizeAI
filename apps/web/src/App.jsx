@@ -106,7 +106,7 @@ function TargetSelect({ labelText, value, onChange, options, hint }) {
   );
 }
 
-function LoadingBlock({ title, description }) {
+function LoadingBlock({ title, description, progress }) {
   return (
     <Panel eyebrow="Scanning" title={title} description={description}>
       <div className="loading-state">
@@ -114,6 +114,15 @@ function LoadingBlock({ title, description }) {
         <div>
           <strong>Analyzing repository structure...</strong>
           <p>The quick scan is reading manifests, stack markers, libraries, and database artifacts.</p>
+          <div className="progress-block">
+            <div className="progress-meta">
+              <span>Quick analysis progress</span>
+              <strong>{progress}%</strong>
+            </div>
+            <div className="progress-track" aria-hidden="true">
+              <div className="progress-fill" style={{ width: `${progress}%` }} />
+            </div>
+          </div>
         </div>
       </div>
     </Panel>
@@ -299,6 +308,7 @@ export default function App() {
   const [loadingQuick, setLoadingQuick] = useState(false);
   const [loadingDeep, setLoadingDeep] = useState(false);
   const [quickError, setQuickError] = useState("");
+  const [quickProgress, setQuickProgress] = useState(0);
   const [approvalChoice, setApprovalChoice] = useState("no");
   const [generatedSample, setGeneratedSample] = useState(createEmptyGeneratedSample());
   const [generatedReady, setGeneratedReady] = useState(false);
@@ -421,6 +431,7 @@ export default function App() {
     setQuickComplete(false);
     setDeepComplete(false);
     setQuickError("");
+    setQuickProgress(0);
     setGeneratedReady(false);
     setApprovalChoice("no");
     setGeneratedSample(createEmptyGeneratedSample());
@@ -439,9 +450,18 @@ export default function App() {
     setQuickComplete(false);
     setDeepComplete(false);
     setQuickError("");
+    setQuickProgress(6);
     setGeneratedReady(false);
     setApprovalChoice("no");
     setGeneratedSample(createEmptyGeneratedSample());
+    const progressTimer = window.setInterval(() => {
+      setQuickProgress((current) => {
+        if (current >= 90) return current;
+        if (current >= 72) return current + 3;
+        if (current >= 45) return current + 6;
+        return current + 9;
+      });
+    }, 260);
 
     try {
       const response = await fetch(`${apiBase}/api/analyze/quick`, {
@@ -452,16 +472,20 @@ export default function App() {
 
       if (!response.ok) throw new Error("analysis failed");
       const data = await response.json();
+      window.clearInterval(progressTimer);
+      setQuickProgress(100);
       setQuickComplete(true);
       setInitialSelections(data);
       setActiveView("home");
     } catch {
+      window.clearInterval(progressTimer);
       setQuickComplete(false);
       setDeepComplete(false);
       setQuickError("Quick analysis failed. Check that the API is running and the repository path is valid, then try again.");
       setInitialSelections({ ...mockReport, repoUrl, analyzedAt: null, sourceType: "manual" });
       setActiveView("home");
     } finally {
+      window.clearInterval(progressTimer);
       setLoadingQuick(false);
     }
   }
@@ -822,10 +846,12 @@ export default function App() {
               <LoadingBlock
                 title="Quick analysis in progress"
                 description="Detected technologies, libraries, databases, and target selectors will appear as soon as the quick scan completes."
+                progress={quickProgress}
               />
               <LoadingBlock
                 title="Preparing target selectors"
                 description="Target technology, database, and library versions are being assembled from the detected stack."
+                progress={quickProgress}
               />
             </>
           ) : null}
