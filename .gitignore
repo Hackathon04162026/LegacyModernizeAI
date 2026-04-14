@@ -8,3 +8,4 @@ tools/
 sample-projects/
 generated_samples/
 *.log
+tmp/

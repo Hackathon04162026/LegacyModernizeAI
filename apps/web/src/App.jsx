@@ -26,6 +26,20 @@ const databaseTargets = {
 };
 
 const libraryTargets = ["Latest stable", "Current major", "Keep current"];
+const guardrailOptions = {
+  licensingPolicy: ["No restriction", "Approved OSS only", "License review required", "Commercial licensing restricted"],
+  dataSensitivity: ["Standard internal data", "PII present", "Sensitive regulated data", "Cross-border data restrictions"],
+  changeControl: ["Standard delivery approval", "Strict CAB approval", "Release window restricted", "Multi-team signoff required"],
+  databaseFlexibility: ["Database changes allowed", "Schema changes limited", "No database engine change", "Stored procedures must remain"],
+  compatibilityRequirement: ["Modernize freely", "Backward compatibility required", "Legacy API contract must stay", "UI behavior must remain unchanged"]
+};
+const defaultGuardrails = {
+  licensingPolicy: "Approved OSS only",
+  dataSensitivity: "PII present",
+  changeControl: "Strict CAB approval",
+  databaseFlexibility: "Schema changes limited",
+  compatibilityRequirement: "Backward compatibility required"
+};
 
 const emptyText = "Pending quick analysis";
 
@@ -64,6 +78,8 @@ const createEmptyGeneratedSample = () => ({
   summary: "",
   lines: [],
 });
+
+const createDefaultGuardrails = () => ({ ...defaultGuardrails });
 
 function ScoreDial({ value, label, detail }) {
   const score = clampPercent(value);
@@ -163,6 +179,10 @@ function Overview({ report }) {
   const tech = list(report.technologies, []);
   const dbs = list(report.databases, []);
   const libs = list(report.detectedLibraries || report.libraries, []);
+  const guardrails = Object.entries(report.guardrails || {}).map(([key, value]) => ({
+    title: titleCase(key),
+    detail: value
+  }));
   const readinessScore = clampPercent(report.readinessScore);
   const securityIssues = toMetricNumber(report.metrics?.securityIssues, 0);
   const complexityHotspots = toMetricNumber(report.metrics?.complexityHotspots, 0);
@@ -254,7 +274,56 @@ function Overview({ report }) {
         </article>
       </section>
 
+      <section className="before-after-section">
+        <div className="section-heading">
+          <span>Before vs after</span>
+          <h2>What changes with modernization</h2>
+          <p>A simple transformation view that helps teams explain the value of the migration in business terms, not only technical detail.</p>
+        </div>
+        <div className="before-after-grid">
+          <article className="before-after-card before-state">
+            <span className="metric-label">Before</span>
+            <h3>Current legacy baseline</h3>
+            <div className="before-after-list">
+              <div><strong>Stack</strong><span>{report.currentVersion || "Legacy runtime and framework baseline"}</span></div>
+              <div><strong>Readiness</strong><span>{readinessScore}/100 modernization readiness</span></div>
+              <div><strong>Effort</strong><span>{manualWeeks || "-"} weeks with manual-only discovery and planning</span></div>
+              <div><strong>Documentation</strong><span>Knowledge is scattered across code, people, and outdated notes.</span></div>
+            </div>
+          </article>
+
+          <article className="before-after-card after-state">
+            <span className="metric-label">After</span>
+            <h3>Target modernization view</h3>
+            <div className="before-after-list">
+              <div><strong>Stack</strong><span>{report.targetVersion || "Modernized target baseline selected by the team"}</span></div>
+              <div><strong>Maintainability</strong><span>{maintainabilityGain}% projected improvement after the migration path lands</span></div>
+              <div><strong>Effort</strong><span>{assistedWeeks || "-"} weeks with Codex-assisted discovery, planning, and documentation</span></div>
+              <div><strong>Documentation</strong><span>Confluence-ready guidance, onboarding notes, and migration rationale are generated as part of the flow.</span></div>
+            </div>
+          </article>
+        </div>
+      </section>
+
       <div className="summary-strip">{summary.map(([k, v]) => <div key={k}><span>{k}</span><strong>{v}</strong></div>)}</div>
+
+      {guardrails.length ? (
+        <section className="guardrail-impact-overview">
+          <div className="section-heading">
+            <span>Applied guardrails</span>
+            <h2>Delivery constraints selected for this plan</h2>
+            <p>The modernization output below reflects these enterprise boundaries.</p>
+          </div>
+          <div className="guardrail-chip-row">
+            {guardrails.map((item) => (
+              <div key={item.title} className="guardrail-chip">
+                <strong>{item.title}</strong>
+                <span>{item.detail}</span>
+              </div>
+            ))}
+          </div>
+        </section>
+      ) : null}
 
       <div className="stack-columns stack-columns-rich">
         {[
@@ -307,6 +376,43 @@ function Analysis({ report, groups }) {
         <article><span>Complexity hotspots</span><strong>{report.metrics?.complexityHotspots ?? "-"}</strong></article>
         <article><span>Maintainability gain</span><strong>{report.metrics?.maintainabilityGainPercent ?? "-"}%</strong></article>
       </div>
+
+      <section className="automation-review-section">
+        <div className="section-heading">
+          <span>Delivery balance</span>
+          <h2>Where Codex helps and where people stay in control</h2>
+          <p>This keeps the modernization story realistic: AI accelerates discovery and planning, while sensitive business and release decisions remain human-led.</p>
+        </div>
+        <div className="automation-columns">
+          <article className="automation-card automation-card-ai">
+            <span className="metric-label">Codex can accelerate</span>
+            <h3>Good candidates for AI-assisted execution</h3>
+            <ul>{list(report.canAccelerate, ["Dependency inventory and version mapping", "Upgrade sequencing and risk summaries", "Documentation draft generation"]).map((item) => <li key={label(item)}>{label(item)}</li>)}</ul>
+          </article>
+          <article className="automation-card automation-card-manual">
+            <span className="metric-label">Manual review required</span>
+            <h3>Areas that still need human sign-off</h3>
+            <ul>{list(report.cannotAutomate, ["Business-rule validation for high-risk workflows", "Manual sign-off for schema-breaking database changes"]).map((item) => <li key={label(item)}>{label(item)}</li>)}</ul>
+          </article>
+        </div>
+      </section>
+
+      {Array.isArray(report.guardrailImpact) && report.guardrailImpact.length ? (
+        <section className="guardrail-impact-analysis">
+          <div className="section-heading">
+            <span>Guardrail impact</span>
+            <h2>How delivery constraints changed the assessment</h2>
+            <p>These adjustments explain why the modernization path is more controlled than a generic upgrade recommendation.</p>
+          </div>
+          <div className="guardrail-impact-list">
+            {report.guardrailImpact.map((item) => (
+              <article key={item} className="guardrail-impact-card">
+                <strong>{item}</strong>
+              </article>
+            ))}
+          </div>
+        </section>
+      ) : null}
     </Panel>
   );
 }
@@ -316,7 +422,7 @@ function Help() {
     {
       title: "Home",
       detail: "Start with a repository path or a sample project, run a quick scan, choose target versions, and launch the deeper analysis only after the team agrees on the target baseline.",
-      points: ["Best for first-time users and live demos", "Shows repository intake, quick scan, target selection, and sample generation"],
+      points: ["Useful as the main entry point for new users", "Shows repository intake, quick scan, target selection, and sample generation"],
     },
     {
       title: "Overview",
@@ -360,9 +466,9 @@ function Help() {
   const guidanceAssets = [
     {
       title: "Step-by-step PDF guidelines",
-      detail: "A page-by-page walkthrough with screenshot guidance, key highlights, and the order to present each part of the workspace clearly.",
+      detail: "A detailed onboarding guide with annotated screenshots, click-by-click explanations, and plain-language notes for each workspace section.",
       meta: "PDF guide",
-      link: `${apiBase}/submission-assets/walkthrough-with-screenshots.md`,
+      link: `${apiBase}/submission-assets/onboarding-guide-detailed.pdf`,
     },
     {
       title: "Video guide with narration",
@@ -439,7 +545,7 @@ function Help() {
         <div className="section-heading">
           <span>Guides</span>
           <h2>PDF and video guidance</h2>
-          <p>Use these guides to present the workspace clearly, capture screenshots in the right order, and record a narrated video that explains the product in simple language.</p>
+          <p>Use these guides to walk through the workspace clearly, capture screenshots in the right order, and record a narrated video that explains the product in simple language.</p>
         </div>
         <div className="help-resource-list help-resource-grid">
           {guidanceAssets.map((asset) => (
@@ -738,6 +844,7 @@ export default function App() {
   const [technologyTargetsState, setTechnologyTargetsState] = useState({});
   const [databaseTargetsState, setDatabaseTargetsState] = useState({});
   const [libraryTargetsState, setLibraryTargetsState] = useState({});
+  const [guardrailsState, setGuardrailsState] = useState(createDefaultGuardrails());
   const quickRevealTimerRef = useRef(null);
 
   const technologies = list(report.technologies, []);
@@ -849,11 +956,22 @@ export default function App() {
     };
   }
 
+  function buildGuardrails() {
+    return {
+      licensingPolicy: guardrailsState.licensingPolicy || defaultGuardrails.licensingPolicy,
+      dataSensitivity: guardrailsState.dataSensitivity || defaultGuardrails.dataSensitivity,
+      changeControl: guardrailsState.changeControl || defaultGuardrails.changeControl,
+      databaseFlexibility: guardrailsState.databaseFlexibility || defaultGuardrails.databaseFlexibility,
+      compatibilityRequirement: guardrailsState.compatibilityRequirement || defaultGuardrails.compatibilityRequirement
+    };
+  }
+
   function setInitialSelections(nextReport) {
     setReport(normalizeIncomingReport(nextReport));
     setTechnologyTargetsState({});
     setDatabaseTargetsState({});
     setLibraryTargetsState({});
+    setGuardrailsState({ ...createDefaultGuardrails(), ...(nextReport.guardrails || {}) });
   }
 
   function applySample(sample) {
@@ -871,6 +989,7 @@ export default function App() {
     setQuickPhase("idle");
     setGeneratedReady(false);
     setApprovalChoice("no");
+    setGuardrailsState(createDefaultGuardrails());
     setGeneratedSample(createEmptyGeneratedSample());
     setReport({
       ...mockReport,
@@ -918,14 +1037,14 @@ export default function App() {
       let response = await fetch(`${apiBase}/api/analyze/quick`, {
         method: "POST",
         headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ repoUrl }),
+        body: JSON.stringify({ repoUrl, guardrails: buildGuardrails() }),
       });
 
       if (!response.ok) {
         response = await fetch(`${apiBase}/api/analyze`, {
           method: "POST",
           headers: { "Content-Type": "application/json" },
-          body: JSON.stringify({ repoUrl }),
+          body: JSON.stringify({ repoUrl, guardrails: buildGuardrails() }),
         });
       }
 
@@ -971,7 +1090,8 @@ export default function App() {
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({
           repoUrl,
-          targetSelections: buildTargetSelections()
+          targetSelections: buildTargetSelections(),
+          guardrails: buildGuardrails()
         }),
       });
 
@@ -991,6 +1111,7 @@ export default function App() {
 
   async function generateSampleProject() {
     const targetSelections = buildTargetSelections();
+    const guardrails = buildGuardrails();
 
     setGeneratingSample(true);
     try {
@@ -999,7 +1120,8 @@ export default function App() {
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({
           projectName: `${slug(repoUrl.split(/[\\/]/).filter(Boolean).pop() || "modernized-project")}-sample`,
-          targetSelections
+          targetSelections,
+          guardrails
         }),
       });
 
@@ -1094,7 +1216,7 @@ export default function App() {
           <p className="eyebrow">{pageTitle}</p>
           <h2>{deepComplete ? "Enterprise modernization workspace unlocked" : quickComplete ? "Quick analysis complete and target planning is ready" : "AI-assisted modernization planning for enterprise applications"}</h2>
           <p className="banner-description">
-            LegacyModernizeAI analyzes legacy Java, Angular, and React repositories, detects frameworks, databases, and libraries, and turns that inventory into upgrade decisions, risk insights, documentation, and migration output.
+            LegacyModernizeAI helps teams modernize legacy applications by combining stack discovery, risk analysis, documentation generation, and enterprise guardrails into one guided planning workspace.
           </p>
         </div>
         <div className="banner-chip">
@@ -1266,6 +1388,50 @@ export default function App() {
                     }) : <p className="muted">Run quick analysis to reveal library targets.</p>}
                   </article>
                 </div>
+                <section className="guardrail-section">
+                  <div className="section-heading">
+                    <span>Enterprise guardrails</span>
+                    <h2>Set the delivery constraints</h2>
+                    <p>These guardrails shape the effort estimate, what can be accelerated with Codex, and what still needs manual review.</p>
+                  </div>
+                  <div className="guardrail-grid">
+                    <TargetSelect
+                      labelText="Licensing policy"
+                      value={guardrailsState.licensingPolicy}
+                      options={guardrailOptions.licensingPolicy}
+                      hint="Shapes dependency replacement and approval scope."
+                      onChange={(value) => setGuardrailsState((current) => ({ ...current, licensingPolicy: value }))}
+                    />
+                    <TargetSelect
+                      labelText="Data sensitivity"
+                      value={guardrailsState.dataSensitivity}
+                      options={guardrailOptions.dataSensitivity}
+                      hint="Raises or lowers compliance and security expectations."
+                      onChange={(value) => setGuardrailsState((current) => ({ ...current, dataSensitivity: value }))}
+                    />
+                    <TargetSelect
+                      labelText="Change control"
+                      value={guardrailsState.changeControl}
+                      options={guardrailOptions.changeControl}
+                      hint="Influences review gates and coordination overhead."
+                      onChange={(value) => setGuardrailsState((current) => ({ ...current, changeControl: value }))}
+                    />
+                    <TargetSelect
+                      labelText="Database flexibility"
+                      value={guardrailsState.databaseFlexibility}
+                      options={guardrailOptions.databaseFlexibility}
+                      hint="Constrains how much the data layer can change."
+                      onChange={(value) => setGuardrailsState((current) => ({ ...current, databaseFlexibility: value }))}
+                    />
+                    <TargetSelect
+                      labelText="Compatibility requirement"
+                      value={guardrailsState.compatibilityRequirement}
+                      options={guardrailOptions.compatibilityRequirement}
+                      hint="Changes how aggressively the plan can modernize interfaces and behavior."
+                      onChange={(value) => setGuardrailsState((current) => ({ ...current, compatibilityRequirement: value }))}
+                    />
+                  </div>
+                </section>
 
                 <div className="action-row">
                   <button type="button" onClick={runDeepAnalysis} disabled={loadingDeep || !quickComplete}>

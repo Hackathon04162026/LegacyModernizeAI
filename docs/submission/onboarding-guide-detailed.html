@@ -1,0 +1,353 @@
+<!doctype html><html><head><meta charset="utf-8">
+<title>LegacyModernizeAI Detailed Onboarding Guide</title>
+<style>
+body{font-family:"Segoe UI",Arial,sans-serif;margin:0;background:#f7f2e7;color:#22314a;line-height:1.55}
+.container{max-width:980px;margin:0 auto;padding:40px 44px 80px}
+h1,h2,h3{color:#1f2e46;margin:24px 0 12px}
+h1{font-size:34px;margin:0}
+h2{font-size:25px;border-top:1px solid #eadfce;padding-top:24px}
+h3{font-size:18px}
+p,li{font-size:15px}
+.hero{background:linear-gradient(135deg,#fff8f1,#ffe6d6);border:1px solid #f0d9c8;border-radius:24px;padding:28px 30px 18px;margin-bottom:28px;box-shadow:0 18px 40px rgba(73,53,26,.08)}
+img{max-width:100%;display:block;margin:18px auto 24px;border-radius:18px;border:1px solid #efddcc;box-shadow:0 16px 32px rgba(73,53,26,.10);page-break-inside:avoid}
+ul,ol{padding-left:24px}
+strong{color:#1e2c43}
+li{margin:6px 0}
+code{background:#fff2e8;padding:2px 6px;border-radius:6px}
+</style></head><body><div class="container">
+<div class="hero">
+<h1>LegacyModernizeAI Detailed Onboarding Guide</h1>
+<p>This guide is written as a descriptive, PDF-ready walkthrough for new users, delivery leads, and engineers who need to understand what each section of the workspace does before they start using the product.</p>
+<p>It is designed to answer three questions clearly:</p>
+<ol>
+<li>What is this section for?</li>
+<li>What should the user click?</li>
+<li>What should the user expect after that action?</li>
+</ol>
+<p>The annotated screenshots below use numbered highlights so each region can be explained in plain language without forcing the reader to interpret a full screen on their own.</p>
+</div>
+<h2>1. Product Purpose</h2>
+<p>LegacyModernizeAI helps teams inspect a legacy repository, detect its technical landscape, shape a realistic modernization path, and document the outcome in a way that supports onboarding and delivery planning.</p>
+<p>It is useful when:</p>
+<ul>
+<li>a new engineer inherits an older Java, Angular, or React codebase</li>
+<li>the data layer includes Oracle, PL-SQL, or SQL Server assets</li>
+<li>delivery teams need a realistic estimate before committing to upgrades</li>
+<li>modernization choices must respect guardrails such as approvals, compatibility, or licensing constraints</li>
+</ul>
+<p>The goal is not only to list versions. The goal is to turn uncertainty into a guided plan.</p>
+<h2>2. Navigation And Workspace Context</h2>
+<img src="../screenshots/annotated/01-home-navigation-annotated.png" alt="Annotated navigation screen">
+<h3>2.1 What the numbered highlights mean</h3>
+<p><strong>1. Product identity and workspace description</strong></p>
+<ul>
+<li>This introduces the product and explains the workspace in one sentence.</li>
+<li>A new user can read this first to understand that the product is meant to inspect repositories, map technologies, and shape a target plan.</li>
+</ul>
+<p><strong>2. Menu row</strong></p>
+<ul>
+<li>This is the main navigation for the workspace.</li>
+<li><code>Home</code> is where the scan begins.</li>
+<li><code>Overview</code>, <code>Analysis</code>, <code>Documentation</code>, and <code>Roadmap</code> become the main review pages after deep analysis is complete.</li>
+<li><code>Help</code> stays available as a permanent guide for new users.</li>
+</ul>
+<p><strong>3. Phase badge</strong></p>
+<ul>
+<li>This shows the current step in the workflow.</li>
+<li>It helps the user understand whether the workspace is still waiting for a scan or already has enough information to move into planning.</li>
+</ul>
+<h3>2.2 What a new user should do here</h3>
+<ol>
+<li>Read the top description.</li>
+<li>Note that <code>Home</code> is the entry point.</li>
+<li>Use the badge as a quick status indicator while moving through the workflow.</li>
+</ol>
+<h2>3. Repository Path And Quick Analysis Controls</h2>
+<img src="../screenshots/annotated/02-home-scan-controls-annotated.png" alt="Annotated home scan controls">
+<h3>3.1 What the numbered highlights mean</h3>
+<p><strong>1. Home page hero area</strong></p>
+<ul>
+<li>This confirms the workspace is on the planning page.</li>
+<li>It also tells the user when the initial scan has completed and the target selection flow is ready.</li>
+</ul>
+<p><strong>2. Repository path field</strong></p>
+<ul>
+<li>This is where the user points the application to a local repository or selected sample project.</li>
+<li>The scan uses this value as the source of truth for analysis.</li>
+</ul>
+<p><strong>3. Browse sample folders button</strong></p>
+<ul>
+<li>This button helps a new user start immediately.</li>
+<li>Clicking it loads one of the built-in sample projects so the workflow can be demonstrated without preparing a real codebase first.</li>
+</ul>
+<p><strong>4. Quick analysis button</strong></p>
+<ul>
+<li>This is the first action button that starts repository discovery.</li>
+<li>Clicking it launches the lightweight scan and temporarily disables the button while the progress state is active.</li>
+</ul>
+<p><strong>5. Enterprise outcomes panel</strong></p>
+<ul>
+<li>This panel explains what the scan is intended to produce.</li>
+<li>It frames the product in business language: discover the real stack, decide the target baseline, and generate a believable sample outcome.</li>
+</ul>
+<h3>3.2 What the user should click</h3>
+<ol>
+<li>Paste a repository path or choose a sample folder.</li>
+<li>Click <code>Quick analysis</code>.</li>
+</ol>
+<h3>3.3 What happens next</h3>
+<ul>
+<li>the product reads the repository structure</li>
+<li>manifests, frameworks, libraries, and database hints are detected</li>
+<li>the lower planning sections become meaningful only after the quick scan returns results</li>
+</ul>
+<h2>4. Detected Stack Results</h2>
+<img src="../screenshots/annotated/03-detected-stack-annotated.png" alt="Annotated detected stack results">
+<h3>4.1 What the numbered highlights mean</h3>
+<p><strong>1. Result summary banner</strong></p>
+<ul>
+<li>This confirms the repository has been profiled successfully.</li>
+<li>It tells the user the scan has produced enough structure to move into target planning.</li>
+</ul>
+<p><strong>2. Main technologies card</strong></p>
+<ul>
+<li>This card shows the primary runtime and framework signals found in the repository.</li>
+<li>It helps the user verify that the correct technology stack has been detected.</li>
+</ul>
+<p><strong>3. Libraries card</strong></p>
+<ul>
+<li>This card shows supporting dependencies that may influence the upgrade path.</li>
+<li>It is useful for spotting older libraries that may need sequencing or manual review.</li>
+</ul>
+<p><strong>4. Databases card</strong></p>
+<ul>
+<li>This card surfaces the detected database platform or procedural data-layer signals.</li>
+<li>It is important when the migration path depends on Oracle, PL-SQL, or SQL Server compatibility.</li>
+</ul>
+<h3>4.2 What a new user should do here</h3>
+<ol>
+<li>Confirm that the detected technologies are correct.</li>
+<li>Check whether any libraries or database signals could affect scope.</li>
+<li>Continue into target version planning below.</li>
+</ol>
+<h2>5. Target Versions And Delivery Constraints</h2>
+<img src="../screenshots/annotated/04-targets-and-guardrails-annotated.png" alt="Annotated targets and guardrails">
+<h3>5.1 What the numbered highlights mean</h3>
+<p><strong>1. Target planning section header</strong></p>
+<ul>
+<li>This marks the point where repository discovery becomes modernization planning.</li>
+<li>The selected values here are used by the deeper analysis.</li>
+</ul>
+<p><strong>2. Main technology targets</strong></p>
+<ul>
+<li>These dropdowns capture the desired runtime and framework destination.</li>
+<li>A user chooses the future state for Java, Spring Boot, Angular, or React depending on the detected stack.</li>
+</ul>
+<p><strong>3. Database target</strong></p>
+<ul>
+<li>This dropdown captures how the database layer should be treated.</li>
+<li>It allows the team to keep a current path or align the plan to a supported target database version.</li>
+</ul>
+<p><strong>4. Library targets</strong></p>
+<ul>
+<li>These dropdowns hold supporting dependency targets.</li>
+<li>They are useful when the main framework upgrade still depends on companion library choices.</li>
+</ul>
+<p><strong>5. Enterprise guardrails section</strong></p>
+<ul>
+<li>This section adds delivery constraints such as licensing policy, data sensitivity, change control, database flexibility, and compatibility requirements.</li>
+<li>These values shape the deeper estimate so the output is not generic.</li>
+</ul>
+<p><strong>6. Deep analysis button</strong></p>
+<ul>
+<li>This is the main planning action.</li>
+<li>Clicking it unlocks the detailed pages and turns the quick scan into a full modernization assessment.</li>
+</ul>
+<h3>5.2 What the user should click</h3>
+<ol>
+<li>Choose the future runtime and framework versions.</li>
+<li>Review the database target carefully if the system uses schema-heavy logic or stored procedures.</li>
+<li>Set the guardrails that reflect the delivery reality.</li>
+<li>Click <code>Deep analysis</code>.</li>
+</ol>
+<h3>5.3 What happens next</h3>
+<ul>
+<li>the detailed workspace pages unlock</li>
+<li>effort, readiness, and maintainability metrics are calculated</li>
+<li>findings, documentation, and roadmap outputs become available</li>
+</ul>
+<h2>6. Overview Page</h2>
+<img src="../screenshots/annotated/05-overview-annotated.png" alt="Annotated overview page">
+<h3>6.1 What the numbered highlights mean</h3>
+<p><strong>1. Snapshot metrics</strong></p>
+<ul>
+<li>This is the executive summary area.</li>
+<li>It includes readiness, issue counts, maintainability gain, and overall delivery balance.</li>
+<li>A new user should read this first because it gives the fastest understanding of the current state.</li>
+</ul>
+<p><strong>2. Before and after comparison</strong></p>
+<ul>
+<li>This area compares the current legacy baseline with the proposed target view.</li>
+<li>It helps users see how the chosen modernization direction changes readiness, effort, and maintainability.</li>
+</ul>
+<p><strong>3. Repository and scan summary</strong></p>
+<ul>
+<li>This strip keeps the practical context visible.</li>
+<li>It tells the reader which repository was analyzed, how many files were scanned, and when the analysis took place.</li>
+</ul>
+<p><strong>4. Applied guardrails and inventory</strong></p>
+<ul>
+<li>This section explains which delivery constraints influenced the output and what technologies or databases were detected.</li>
+<li>It helps a new user understand why the recommendations may be more controlled than a generic upgrade suggestion.</li>
+</ul>
+<h3>6.2 What a new user should do here</h3>
+<ol>
+<li>Read the readiness score and issue counts first.</li>
+<li>Compare the current baseline and target view.</li>
+<li>Check the applied guardrails before interpreting the effort estimate.</li>
+</ol>
+<h2>7. Analysis Page</h2>
+<img src="../screenshots/annotated/06-analysis-annotated.png" alt="Annotated analysis page">
+<h3>7.1 What the numbered highlights mean</h3>
+<p><strong>1. Findings cards</strong></p>
+<ul>
+<li>These cards summarize the main security, complexity, blocker, and suggestion themes.</li>
+<li>They help the user understand why the migration may be difficult.</li>
+</ul>
+<p><strong>2. Severity counters</strong></p>
+<ul>
+<li>This strip summarizes the number of security issues, complexity hotspots, and expected maintainability lift.</li>
+<li>It gives a quick way to compare scan results across projects.</li>
+</ul>
+<p><strong>3. Good candidates for AI-assisted execution</strong></p>
+<ul>
+<li>This section explains what can be accelerated safely.</li>
+<li>It often includes discovery, documentation, dependency mapping, and controlled scaffolding work.</li>
+</ul>
+<p><strong>4. Areas that still need human sign-off</strong></p>
+<ul>
+<li>This section explains what still depends on people and approvals.</li>
+<li>It often includes business-rule validation, cutover planning, compatibility review, and release governance.</li>
+</ul>
+<p><strong>5. Guardrail impact explanation</strong></p>
+<ul>
+<li>This section shows how the selected delivery constraints changed the assessment.</li>
+<li>It helps the user see that the plan is shaped by real-world constraints rather than a one-size-fits-all upgrade suggestion.</li>
+</ul>
+<h3>7.2 What a new user should do here</h3>
+<ol>
+<li>Read the findings cards from left to right.</li>
+<li>Compare what can be accelerated and what remains manual.</li>
+<li>Use the guardrail impact notes to explain why the plan is conservative or tightly controlled.</li>
+</ol>
+<h2>8. Documentation And Confluence View</h2>
+<img src="../screenshots/annotated/07-documentation-annotated.png" alt="Annotated documentation page">
+<h3>8.1 What the numbered highlights mean</h3>
+<p><strong>1. Documentation table</strong></p>
+<ul>
+<li>This table groups the generated outputs into areas such as architecture, data, upgrade decisions, and onboarding notes.</li>
+<li>It is meant to support team handoff and knowledge capture.</li>
+</ul>
+<p><strong>2. Confluence link actions</strong></p>
+<ul>
+<li>These actions take the user directly to the linked documentation pages.</li>
+<li>They make it easy to move from generated guidance into the shared knowledge space.</li>
+</ul>
+<p><strong>3. Summary topic cards</strong></p>
+<ul>
+<li>These cards restate the document themes in a simpler visual format.</li>
+<li>A user can skim these cards before opening the linked pages in detail.</li>
+</ul>
+<h3>8.2 What a new user should do here</h3>
+<ol>
+<li>Review the table row names and descriptions.</li>
+<li>Open the relevant Confluence page for the area they need.</li>
+<li>Use onboarding notes and upgrade decisions as the first reading pack for new team members.</li>
+</ol>
+<h2>9. Roadmap And Effort View</h2>
+<img src="../screenshots/annotated/08-roadmap-annotated.png" alt="Annotated roadmap page">
+<h3>9.1 What the numbered highlights mean</h3>
+<p><strong>1. Effort summary strip</strong></p>
+<ul>
+<li>This compares manual effort, AI-assisted effort, current stack, and target stack.</li>
+<li>It gives a quick planning summary before the user reads the phases.</li>
+</ul>
+<p><strong>2. Phase cards</strong></p>
+<ul>
+<li>These cards break the migration into a staged sequence.</li>
+<li>They help the user avoid treating modernization as one large undifferentiated task.</li>
+</ul>
+<p><strong>3. Delivery phase grouping</strong></p>
+<ul>
+<li>This region shows the structured order in which the work should progress.</li>
+<li>It gives the roadmap a clear beginning, middle, and hardening phase.</li>
+</ul>
+<p><strong>4. Can accelerate</strong></p>
+<ul>
+<li>This section lists work that can move faster with AI support.</li>
+<li>It is useful for staffing and planning conversations.</li>
+</ul>
+<p><strong>5. Needs manual review</strong></p>
+<ul>
+<li>This section lists the work that still needs human validation and release control.</li>
+<li>It keeps the roadmap credible by showing where automation should stop.</li>
+</ul>
+<h3>9.2 What a new user should do here</h3>
+<ol>
+<li>Read the effort summary first.</li>
+<li>Review the phases in sequence.</li>
+<li>Compare the acceleration opportunities with the manual-review responsibilities.</li>
+</ol>
+<h2>10. Help And Guidance View</h2>
+<img src="../screenshots/annotated/09-help-guides-annotated.png" alt="Annotated help page">
+<h3>10.1 What the numbered highlights mean</h3>
+<p><strong>1. Step-by-step PDF guidelines</strong></p>
+<ul>
+<li>This opens the written walkthrough.</li>
+<li>It is best for someone who wants a structured explanation with screenshots and annotations.</li>
+</ul>
+<p><strong>2. Video guide with narration</strong></p>
+<ul>
+<li>This opens the spoken walkthrough script.</li>
+<li>It helps turn the workspace into a narrated explanation that can be recorded or presented consistently.</li>
+</ul>
+<p><strong>3. Suggested order for screenshots and video capture</strong></p>
+<ul>
+<li>This section explains the recommended sequence for telling the product story.</li>
+<li>It helps a team record the product in a clean order without losing the core value message.</li>
+</ul>
+<h3>10.2 What a new user should do here</h3>
+<ol>
+<li>Open this page first if they want a plain-language orientation.</li>
+<li>Use the PDF guide when they want a written walkthrough.</li>
+<li>Use the video guide when they want a narration-friendly flow.</li>
+</ol>
+<h2>11. Recommended End-To-End Flow</h2>
+<p>The simplest onboarding flow is:</p>
+<ol>
+<li>Start on <code>Home</code>.</li>
+<li>Choose a repository path or sample folder.</li>
+<li>Click <code>Quick analysis</code>.</li>
+<li>Review the detected technologies, libraries, and databases.</li>
+<li>Select target versions.</li>
+<li>Apply delivery constraints.</li>
+<li>Click <code>Deep analysis</code>.</li>
+<li>Read <code>Overview</code> for the current-state summary.</li>
+<li>Read <code>Analysis</code> for findings and manual-review areas.</li>
+<li>Open <code>Documentation</code> for handoff notes and Confluence references.</li>
+<li>Read <code>Roadmap</code> for phased delivery planning.</li>
+<li>Use <code>Help</code> whenever someone needs a guided explanation of the workspace.</li>
+</ol>
+<h2>12. What A New User Should Remember</h2>
+<p>LegacyModernizeAI is most useful when it is treated as a guided modernization workspace rather than a single scan screen.</p>
+<p>It helps answer:</p>
+<ul>
+<li>what technology is in the repository</li>
+<li>what target state makes sense</li>
+<li>what risks are present</li>
+<li>what can be accelerated safely</li>
+<li>what still needs human review</li>
+<li>what documentation should be shared to support onboarding and delivery</li>
+</ul>
+<p>That is the main value of the product: it turns a hard-to-read legacy application into a visible, explainable modernization path.</p>
+</div></body></html>

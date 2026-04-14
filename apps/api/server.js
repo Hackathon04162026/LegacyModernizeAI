@@ -62,7 +62,7 @@ app.get("/api/demo-analysis", async (_, res) => {
 });
 
 app.post("/api/analyze/quick", async (req, res) => {
-  const { repoUrl, projectType = "java", database = "oracle", targetSelections, targetTechnologies, targetDatabases, targetLibraries } = req.body ?? {};
+  const { repoUrl, projectType = "java", database = "oracle", targetSelections, targetTechnologies, targetDatabases, targetLibraries, guardrails } = req.body ?? {};
 
   try {
     const report = await analyzeRepositoryQuick({
@@ -72,7 +72,8 @@ app.post("/api/analyze/quick", async (req, res) => {
       targetSelections,
       targetTechnologies,
       targetDatabases,
-      targetLibraries
+      targetLibraries,
+      guardrails
     });
 
     res.json(report);
@@ -85,7 +86,7 @@ app.post("/api/analyze/quick", async (req, res) => {
 });
 
 app.post("/api/analyze/deep", async (req, res) => {
-  const { repoUrl, projectType = "java", database = "oracle", targetSelections, targetTechnologies, targetDatabases, targetLibraries } = req.body ?? {};
+  const { repoUrl, projectType = "java", database = "oracle", targetSelections, targetTechnologies, targetDatabases, targetLibraries, guardrails } = req.body ?? {};
 
   try {
     const report = await analyzeRepositoryDeep({
@@ -95,7 +96,8 @@ app.post("/api/analyze/deep", async (req, res) => {
       targetSelections,
       targetTechnologies,
       targetDatabases,
-      targetLibraries
+      targetLibraries,
+      guardrails
     });
 
     res.json(report);
@@ -108,7 +110,7 @@ app.post("/api/analyze/deep", async (req, res) => {
 });
 
 app.post("/api/analyze", async (req, res) => {
-  const { repoUrl, projectType = "java", database = "oracle", targetSelections, targetTechnologies, targetDatabases, targetLibraries } = req.body ?? {};
+  const { repoUrl, projectType = "java", database = "oracle", targetSelections, targetTechnologies, targetDatabases, targetLibraries, guardrails } = req.body ?? {};
 
   try {
     const report = await analyzeRepositoryDeep({
@@ -118,7 +120,8 @@ app.post("/api/analyze", async (req, res) => {
       targetSelections,
       targetTechnologies,
       targetDatabases,
-      targetLibraries
+      targetLibraries,
+      guardrails
     });
 
     res.json(report);

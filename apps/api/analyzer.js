@@ -21,6 +21,14 @@ const databaseTargetVersionsByType = {
   sqlite: ["SQLite 3.46"]
 };
 
+const guardrailDefaults = {
+  licensingPolicy: "Approved OSS only",
+  dataSensitivity: "PII present",
+  changeControl: "Strict CAB approval",
+  databaseFlexibility: "Schema changes limited",
+  compatibilityRequirement: "Backward compatibility required"
+};
+
 const sourceExtensions = new Set([".java", ".js", ".jsx", ".ts", ".tsx"]);
 const databaseExtensions = new Set([".sql", ".pls", ".pks", ".pkb", ".prc"]);
 const packageJsonNames = new Set(["package.json"]);
@@ -39,7 +47,8 @@ export async function analyzeRepositoryQuick(input = {}) {
 
     return buildQuickReport(scan, {
       repoUrl: input.repoUrl,
-      sourceType: resolved.sourceType
+      sourceType: resolved.sourceType,
+      guardrails: normalizeGuardrails(input.guardrails || input.guardrailSelections)
     });
   });
 }
@@ -55,7 +64,8 @@ export async function analyzeRepositoryDeep(input = {}) {
     return buildDeepReport(scan, {
       repoUrl: input.repoUrl,
       sourceType: resolved.sourceType,
-      selectedTargets: normalizeTargetSelections(input)
+      selectedTargets: normalizeTargetSelections(input),
+      guardrails: normalizeGuardrails(input.guardrails || input.guardrailSelections)
     });
   });
 }
@@ -934,6 +944,96 @@ function buildEffort({ fileCount, projectType, findings, technologies, databases
   };
 }
 
+function normalizeGuardrails(input = {}) {
+  return {
+    licensingPolicy: input.licensingPolicy || guardrailDefaults.licensingPolicy,
+    dataSensitivity: input.dataSensitivity || guardrailDefaults.dataSensitivity,
+    changeControl: input.changeControl || guardrailDefaults.changeControl,
+    databaseFlexibility: input.databaseFlexibility || guardrailDefaults.databaseFlexibility,
+    compatibilityRequirement: input.compatibilityRequirement || guardrailDefaults.compatibilityRequirement
+  };
+}
+
+function buildGuardrailImpact(guardrails) {
+  const impacts = [];
+
+  if (guardrails.licensingPolicy !== "No restriction") {
+    impacts.push("Library upgrades should respect the selected licensing policy and may require manual approval before replacement.");
+  }
+
+  if (guardrails.dataSensitivity !== "Standard internal data") {
+    impacts.push("Sensitive-data controls raise documentation, security review, and release governance expectations.");
+  }
+
+  if (guardrails.changeControl !== "Standard delivery approval") {
+    impacts.push("Stricter change control increases coordination effort and slows promotion through later release stages.");
+  }
+
+  if (guardrails.databaseFlexibility !== "Database changes allowed") {
+    impacts.push("Database modernization options are narrowed, so roadmap phases should preserve more of the existing data layer.");
+  }
+
+  if (guardrails.compatibilityRequirement !== "Modernize freely") {
+    impacts.push("Backward compatibility requirements reduce aggressive refactoring and increase validation work.");
+  }
+
+  return impacts;
+}
+
+function applyGuardrailsToEffort(effort, guardrails) {
+  let manualDelta = 0;
+  let codexDelta = 0;
+  let readinessPenalty = 0;
+  let maintainabilityPenalty = 0;
+
+  if (guardrails.licensingPolicy !== "No restriction") {
+    manualDelta += 1;
+    codexDelta += 1;
+    readinessPenalty += 2;
+  }
+
+  if (guardrails.dataSensitivity === "PII present") {
+    manualDelta += 1;
+    codexDelta += 1;
+    readinessPenalty += 3;
+  } else if (guardrails.dataSensitivity === "Sensitive regulated data" || guardrails.dataSensitivity === "Cross-border data restrictions") {
+    manualDelta += 2;
+    codexDelta += 1;
+    readinessPenalty += 5;
+  }
+
+  if (guardrails.changeControl === "Strict CAB approval") {
+    manualDelta += 1;
+    codexDelta += 1;
+    readinessPenalty += 2;
+  } else if (guardrails.changeControl === "Release window restricted" || guardrails.changeControl === "Multi-team signoff required") {
+    manualDelta += 2;
+    codexDelta += 1;
+    readinessPenalty += 4;
+  }
+
+  if (guardrails.databaseFlexibility !== "Database changes allowed") {
+    manualDelta += 1;
+    codexDelta += 1;
+    readinessPenalty += 3;
+  }
+
+  if (guardrails.compatibilityRequirement !== "Modernize freely") {
+    manualDelta += 1;
+    codexDelta += 1;
+    readinessPenalty += 3;
+    maintainabilityPenalty += 4;
+  }
+
+  return {
+    ...effort,
+    manualMigrationWeeks: effort.manualMigrationWeeks + manualDelta,
+    codexAssistedWeeks: effort.codexAssistedWeeks + codexDelta,
+    readinessScore: Math.max(40, effort.readinessScore - readinessPenalty),
+    maintainabilityGainPercent: Math.max(14, effort.maintainabilityGainPercent - maintainabilityPenalty)
+  };
+}
+
 function detectLibraries(manifests, technologies) {
   const results = [];
   const packageFiles = manifests.filter((file) => packageJsonNames.has(path.basename(file.relativePath)));
@@ -1037,6 +1137,7 @@ function buildQuickReport(scan, context) {
     databases: scan.databases,
     detectedLibraries: scan.detectedLibraries,
     targetOptions,
+    guardrails: context.guardrails,
     summary: buildQuickSummary(scan, primaryTechnology, primaryDatabase),
     quickInsights: buildQuickInsights(scan, primaryTechnology, primaryDatabase),
     metrics: {
@@ -1068,6 +1169,7 @@ function buildDeepReport(scan, context) {
     ...scan.versions,
     targetVersions: effectiveTargetVersions
   };
+  const guardrails = context.guardrails || normalizeGuardrails();
   const findings = buildFindings({
     manifests: scan.manifests,
     projectType: scan.detectedProjectType,
@@ -1077,13 +1179,14 @@ function buildDeepReport(scan, context) {
     versions: effectiveVersions
   });
   const roadmap = buildRoadmap(scan.detectedProjectType, effectiveVersions, scan.technologies, scan.databases, findings);
-  const effort = buildEffort({
+  const effort = applyGuardrailsToEffort(buildEffort({
     fileCount: scan.files.length,
     projectType: scan.detectedProjectType,
     findings,
     technologies: scan.technologies,
     databases: scan.databases
-  });
+  }), guardrails);
+  const guardrailImpact = buildGuardrailImpact(guardrails);
   const metrics = {
     securityIssues: findings.security.length,
     complexityHotspots: findings.complexity.length,
@@ -1111,6 +1214,8 @@ function buildDeepReport(scan, context) {
     databases: scan.databases,
     detectedLibraries: scan.detectedLibraries,
     targetOptions,
+    guardrails,
+    guardrailImpact,
     findings,
     roadmap,
     effort,
@@ -1138,13 +1243,20 @@ function buildDeepReport(scan, context) {
       "Business-rule validation for high-risk workflows",
       "Manual sign-off for schema-breaking database changes",
       "Production cutover planning and rollback rehearsal"
-    ],
+    ].concat(
+      guardrails.dataSensitivity !== "Standard internal data" ? ["Sensitive-data validation and compliance sign-off"] : [],
+      guardrails.changeControl !== "Standard delivery approval" ? ["Change approval and release governance checkpoints"] : [],
+      guardrails.compatibilityRequirement !== "Modernize freely" ? ["Backward compatibility verification across dependent consumers"] : []
+    ),
     canAccelerate: [
       "Dependency inventory and version mapping",
       "Upgrade sequencing and risk summaries",
       "Documentation draft generation",
       "Sample modernized UI scaffolding"
-    ],
+    ].concat(
+      guardrails.licensingPolicy !== "No restriction" ? ["Library replacement candidates filtered against licensing policy"] : [],
+      guardrails.databaseFlexibility !== "Database changes allowed" ? ["Database-preserving modernization sequencing"] : []
+    ),
     sampleAppPreview: buildSamplePreview(scan.detectedProjectType)
   };
 }
