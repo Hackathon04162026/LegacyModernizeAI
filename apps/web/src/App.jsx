@@ -298,6 +298,7 @@ export default function App() {
   const [deepComplete, setDeepComplete] = useState(false);
   const [loadingQuick, setLoadingQuick] = useState(false);
   const [loadingDeep, setLoadingDeep] = useState(false);
+  const [quickError, setQuickError] = useState("");
   const [approvalChoice, setApprovalChoice] = useState("no");
   const [generatedSample, setGeneratedSample] = useState(createEmptyGeneratedSample());
   const [generatedReady, setGeneratedReady] = useState(false);
@@ -309,6 +310,7 @@ export default function App() {
   const technologies = list(report.technologies, []);
   const databases = list(report.databases, []);
   const libraries = list(report.detectedLibraries || report.libraries, []);
+  const quickHasData = quickComplete && (technologies.length > 0 || databases.length > 0 || libraries.length > 0);
 
   const bannerSummary = deepComplete
     ? "Deep analysis unlocked"
@@ -418,6 +420,7 @@ export default function App() {
     setShowSampleBrowser(false);
     setQuickComplete(false);
     setDeepComplete(false);
+    setQuickError("");
     setGeneratedReady(false);
     setApprovalChoice("no");
     setGeneratedSample(createEmptyGeneratedSample());
@@ -435,6 +438,7 @@ export default function App() {
     setLoadingQuick(true);
     setQuickComplete(false);
     setDeepComplete(false);
+    setQuickError("");
     setGeneratedReady(false);
     setApprovalChoice("no");
     setGeneratedSample(createEmptyGeneratedSample());
@@ -452,8 +456,10 @@ export default function App() {
       setInitialSelections(data);
       setActiveView("home");
     } catch {
-      setQuickComplete(true);
-      setInitialSelections({ ...mockReport, repoUrl, analyzedAt: new Date().toISOString(), sourceType: "manual" });
+      setQuickComplete(false);
+      setDeepComplete(false);
+      setQuickError("Quick analysis failed. Check that the API is running and the repository path is valid, then try again.");
+      setInitialSelections({ ...mockReport, repoUrl, analyzedAt: null, sourceType: "manual" });
       setActiveView("home");
     } finally {
       setLoadingQuick(false);
@@ -653,9 +659,10 @@ export default function App() {
                 </div>
               </aside>
             </div>
+            {quickError ? <p className="error-banner">{quickError}</p> : null}
           </Panel>
 
-          {quickComplete ? (
+          {quickHasData ? (
             <>
               <section className="insight-ribbon">
                 <article>
