@@ -706,7 +706,13 @@ export default function App() {
             {quickError ? <p className="error-banner">{quickError}</p> : null}
           </Panel>
 
-          {quickHasData ? (
+          {loadingQuick ? (
+            <LoadingBlock
+              title="Quick analysis in progress"
+              description="Detected technologies, libraries, databases, and target selectors will appear only after the scan reaches 100%."
+              progress={quickProgress}
+            />
+          ) : quickHasData ? (
             <>
               <section className="insight-ribbon">
                 <article>
@@ -859,14 +865,6 @@ export default function App() {
                 </Panel>
               ) : null}
             </>
-          ) : null}
-
-          {loadingQuick ? (
-            <LoadingBlock
-              title="Quick analysis in progress"
-              description="Detected technologies, libraries, databases, and target selectors will appear only after the scan reaches 100%."
-              progress={quickProgress}
-            />
           ) : null}
         </div>
       ) : deepComplete ? renderPage() : (
