@@ -464,11 +464,19 @@ export default function App() {
     }, 260);
 
     try {
-      const response = await fetch(`${apiBase}/api/analyze/quick`, {
+      let response = await fetch(`${apiBase}/api/analyze/quick`, {
         method: "POST",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({ repoUrl }),
       });
+
+      if (!response.ok) {
+        response = await fetch(`${apiBase}/api/analyze`, {
+          method: "POST",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify({ repoUrl }),
+        });
+      }
 
       if (!response.ok) throw new Error("analysis failed");
       const data = await response.json();
