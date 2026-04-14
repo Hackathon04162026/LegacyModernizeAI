@@ -1,0 +1,16 @@
+{
+  "name": "@legacymodernizeai/api",
+  "version": "0.1.0",
+  "private": true,
+  "type": "module",
+  "scripts": {
+    "dev": "node --watch server.js",
+    "start": "node server.js",
+    "build": "node -e \"console.log('API build step complete')\"",
+    "lint": "node -e \"console.log('API lint placeholder complete')\""
+  },
+  "dependencies": {
+    "cors": "^2.8.5",
+    "express": "^4.21.2"
+  }
+}
