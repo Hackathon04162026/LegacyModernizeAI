@@ -2,15 +2,23 @@ import cors from "cors";
 import express from "express";
 import fs from "node:fs";
 import path from "node:path";
+import { fileURLToPath } from "node:url";
 import { analyzeRepository, analyzeRepositoryDeep, analyzeRepositoryQuick, generateSampleProject } from "./analyzer.js";
 
 const app = express();
 const port = process.env.PORT || 4000;
-const sampleRoot = path.resolve(process.cwd(), "sample_project");
-const webDistRoot = path.resolve(process.cwd(), "apps/web/dist");
+const currentFilePath = fileURLToPath(import.meta.url);
+const apiRoot = path.dirname(currentFilePath);
+const repoRoot = path.resolve(apiRoot, "../..");
+const sampleRoot = path.resolve(repoRoot, "sample_project");
+const webDistRoot = path.resolve(repoRoot, "apps/web/dist");
+const submissionDocsRoot = path.resolve(repoRoot, "docs/submission");
 
 app.use(cors());
 app.use(express.json());
+if (fs.existsSync(submissionDocsRoot)) {
+  app.use("/submission-assets", express.static(submissionDocsRoot));
+}
 
 app.get("/api/health", (_, res) => {
   res.json({ status: "ok" });

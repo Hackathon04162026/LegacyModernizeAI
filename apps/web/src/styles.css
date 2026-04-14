@@ -574,8 +574,99 @@ button:focus-visible {
   grid-template-columns: repeat(4, minmax(0, 1fr));
 }
 
+.overview-hero,
+.overview-analytics,
+.footprint-grid,
+.effort-bars,
+.inventory-list,
+.help-hero,
+.help-grid,
+.help-steps,
+.help-resource-section {
+  display: grid;
+  gap: 16px;
+}
+
+.overview-hero {
+  grid-template-columns: minmax(240px, 0.85fr) minmax(0, 1.15fr);
+  align-items: stretch;
+  margin-bottom: 18px;
+}
+
+.metrics-grid-overview {
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+}
+
+.score-dial-card {
+  padding: 22px;
+  border-radius: 24px;
+  border: 1px solid rgba(31, 41, 55, 0.12);
+  background:
+    radial-gradient(circle at top, rgba(216, 93, 57, 0.16), transparent 34%),
+    linear-gradient(180deg, rgba(255, 255, 255, 0.98), rgba(255, 247, 240, 0.9));
+  box-shadow: var(--shadow);
+}
+
+.score-dial {
+  width: 170px;
+  height: 170px;
+  margin: 20px auto 16px;
+  border-radius: 999px;
+  display: grid;
+  place-items: center;
+  position: relative;
+}
+
+.score-dial::after {
+  content: "";
+  position: absolute;
+  inset: 15px;
+  border-radius: inherit;
+  background: rgba(255, 255, 255, 0.95);
+  box-shadow: inset 0 0 0 1px rgba(31, 41, 55, 0.06);
+}
+
+.score-dial-center {
+  position: relative;
+  z-index: 1;
+  text-align: center;
+}
+
+.score-dial-center strong {
+  display: block;
+  color: var(--text);
+  font-family: "Space Grotesk", "Segoe UI", sans-serif;
+  font-size: 2.6rem;
+  line-height: 1;
+}
+
+.score-dial-center span {
+  color: var(--muted);
+  font-size: 0.9rem;
+}
+
 .metric-card {
   padding: 18px;
+}
+
+.metric-card-default {
+  background: linear-gradient(180deg, rgba(255,255,255,0.96), rgba(252, 248, 242, 0.92));
+}
+
+.metric-card-risk {
+  background: linear-gradient(180deg, rgba(255,255,255,0.98), rgba(255, 242, 246, 0.96));
+}
+
+.metric-card-warning {
+  background: linear-gradient(180deg, rgba(255,255,255,0.98), rgba(255, 248, 233, 0.96));
+}
+
+.metric-card-success {
+  background: linear-gradient(180deg, rgba(255,255,255,0.98), rgba(240, 251, 245, 0.96));
+}
+
+.metric-card-info {
+  background: linear-gradient(180deg, rgba(255,255,255,0.98), rgba(241, 246, 255, 0.96));
 }
 
 .metric-card strong {
@@ -583,9 +674,240 @@ button:focus-visible {
   font-size: 1.8rem;
 }
 
+.metric-bar {
+  height: 8px;
+  margin-top: 14px;
+  border-radius: 999px;
+  background: rgba(31, 41, 55, 0.08);
+  overflow: hidden;
+}
+
+.metric-bar-fill {
+  height: 100%;
+  border-radius: inherit;
+}
+
 .metric-card p {
   margin: 8px 0 0;
   line-height: 1.5;
+}
+
+.overview-analytics {
+  grid-template-columns: minmax(0, 1.2fr) minmax(280px, 0.8fr);
+  margin-bottom: 18px;
+}
+
+.help-hero {
+  grid-template-columns: minmax(0, 1.15fr) minmax(280px, 0.85fr);
+  margin-bottom: 18px;
+}
+
+.help-grid {
+  grid-template-columns: repeat(3, minmax(0, 1fr));
+  margin-bottom: 18px;
+}
+
+.help-resource-section {
+  margin-bottom: 18px;
+  padding: 22px;
+  border-radius: 24px;
+  border: 1px solid rgba(31, 41, 55, 0.12);
+  background: linear-gradient(180deg, rgba(255,255,255,0.98), rgba(247, 243, 236, 0.95));
+  box-shadow: var(--shadow);
+}
+
+.help-grid-two {
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+}
+
+.help-card,
+.help-story-card {
+  padding: 22px;
+  border-radius: 24px;
+  border: 1px solid rgba(31, 41, 55, 0.12);
+  background: linear-gradient(180deg, rgba(255,255,255,0.98), rgba(249, 245, 238, 0.94));
+  box-shadow: var(--shadow);
+}
+
+.help-story-card-dark {
+  color: #fff;
+  background:
+    radial-gradient(circle at top right, rgba(255,255,255,0.12), transparent 28%),
+    linear-gradient(145deg, #253a58, #18263d 62%, #101b2d 100%);
+}
+
+.help-story-card-dark p,
+.help-story-card-dark li,
+.help-story-card-dark .metric-label {
+  color: rgba(238, 244, 255, 0.84);
+}
+
+.help-card h3,
+.help-story-card h3 {
+  margin: 10px 0 10px;
+  font-family: "Space Grotesk", "Segoe UI", sans-serif;
+  font-size: 1.18rem;
+}
+
+.help-card ul,
+.help-story-card ul {
+  margin: 0;
+  padding-left: 18px;
+  display: grid;
+  gap: 10px;
+}
+
+.help-card li,
+.help-story-card li,
+.help-card p,
+.help-story-card p,
+.help-steps p {
+  color: var(--muted);
+  line-height: 1.6;
+}
+
+.help-steps div {
+  padding: 14px 16px;
+  border-radius: 18px;
+  background: rgba(255, 255, 255, 0.7);
+  border: 1px solid rgba(31, 41, 55, 0.08);
+}
+
+.help-steps strong {
+  display: block;
+  color: var(--text);
+  font-family: "Space Grotesk", "Segoe UI", sans-serif;
+  margin-bottom: 6px;
+}
+
+.help-resource-list {
+  display: grid;
+  gap: 12px;
+}
+
+.help-resource-grid {
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+}
+
+.help-resource {
+  display: grid;
+  grid-template-columns: 1fr auto;
+  gap: 14px;
+  align-items: start;
+  padding: 16px;
+  border-radius: 18px;
+  border: 1px solid rgba(31, 41, 55, 0.08);
+  background: rgba(255, 255, 255, 0.76);
+  color: inherit;
+  text-decoration: none;
+}
+
+.help-resource strong {
+  display: block;
+  color: var(--text);
+  margin-bottom: 6px;
+}
+
+.help-resource p {
+  margin: 0;
+}
+
+.help-resource span {
+  color: var(--accent);
+  font-size: 0.8rem;
+  font-weight: 700;
+  letter-spacing: 0.08em;
+  text-transform: uppercase;
+}
+
+.analytics-card {
+  padding: 22px;
+  border-radius: 24px;
+  border: 1px solid rgba(31, 41, 55, 0.12);
+  background: linear-gradient(180deg, rgba(255,255,255,0.97), rgba(248, 243, 235, 0.94));
+  box-shadow: var(--shadow);
+}
+
+.analytics-card h3 {
+  margin: 10px 0 18px;
+  font-family: "Space Grotesk", "Segoe UI", sans-serif;
+  font-size: 1.2rem;
+}
+
+.analytics-card-dark {
+  color: #fff;
+  background:
+    radial-gradient(circle at top right, rgba(255,255,255,0.12), transparent 28%),
+    linear-gradient(145deg, #203451, #152439 62%, #101b2d 100%);
+  box-shadow: 0 26px 50px rgba(16, 27, 45, 0.3);
+}
+
+.analytics-card-dark p,
+.analytics-card-dark .effort-meta span,
+.analytics-card-dark .metric-label {
+  color: rgba(238, 244, 255, 0.8);
+}
+
+.effort-bars {
+  margin-top: 8px;
+}
+
+.effort-meta {
+  display: flex;
+  justify-content: space-between;
+  gap: 12px;
+  margin-bottom: 8px;
+}
+
+.effort-meta strong {
+  font-family: "Space Grotesk", "Segoe UI", sans-serif;
+}
+
+.effort-track {
+  height: 12px;
+  border-radius: 999px;
+  background: rgba(255, 255, 255, 0.14);
+  overflow: hidden;
+}
+
+.analytics-card:not(.analytics-card-dark) .effort-track {
+  background: rgba(31, 41, 55, 0.08);
+}
+
+.effort-fill {
+  height: 100%;
+  border-radius: inherit;
+}
+
+.effort-fill-manual {
+  background: linear-gradient(135deg, #f6c26b, #d85d39);
+}
+
+.effort-fill-assisted {
+  background: linear-gradient(135deg, #69d2a7, #2f966f);
+}
+
+.footprint-grid {
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+}
+
+.footprint-grid div {
+  padding: 16px;
+  border-radius: 18px;
+  background: rgba(255, 255, 255, 0.72);
+  border: 1px solid rgba(31, 41, 55, 0.08);
+}
+
+.footprint-grid strong {
+  display: block;
+  color: var(--text);
+  font-family: "Space Grotesk", "Segoe UI", sans-serif;
+  font-size: 1.8rem;
+}
+
+.footprint-grid span {
+  color: var(--muted);
+  font-size: 0.88rem;
 }
 
 .detected-grid,
@@ -706,6 +1028,52 @@ button:focus-visible {
   border-radius: 18px;
   border: 1px solid rgba(31, 41, 55, 0.12);
   background: rgba(255, 255, 255, 0.62);
+}
+
+.stack-columns-rich {
+  align-items: start;
+}
+
+.inventory-card {
+  padding: 20px;
+  border-radius: 22px;
+  border: 1px solid rgba(31, 41, 55, 0.12);
+  background: linear-gradient(180deg, rgba(255,255,255,0.98), rgba(249, 245, 238, 0.94));
+  box-shadow: var(--shadow);
+}
+
+.inventory-card h3 {
+  margin: 0;
+  font-family: "Space Grotesk", "Segoe UI", sans-serif;
+}
+
+.inventory-card > p {
+  margin: 8px 0 14px;
+  color: var(--muted);
+}
+
+.inventory-list {
+  gap: 12px;
+}
+
+.inventory-pill {
+  padding: 14px 16px;
+  border-radius: 16px;
+  background: rgba(255, 255, 255, 0.82);
+  border: 1px solid rgba(31, 41, 55, 0.08);
+}
+
+.inventory-pill strong {
+  display: block;
+  margin-bottom: 6px;
+  color: var(--text);
+  font-size: 0.98rem;
+}
+
+.inventory-pill span {
+  color: var(--muted);
+  font-size: 0.88rem;
+  line-height: 1.45;
 }
 
 .stack-columns h3,
@@ -849,6 +1217,11 @@ select:focus-visible {
   .launch-grid,
   .insight-ribbon,
   .metrics-grid,
+  .overview-hero,
+  .overview-analytics,
+  .help-hero,
+  .help-grid,
+  .help-resource-grid,
   .summary-strip,
   .detected-grid,
   .targets-grid,
@@ -904,5 +1277,16 @@ select:focus-visible {
 
   .decision-row {
     grid-template-columns: 1fr;
+  }
+
+  .metrics-grid-overview,
+  .footprint-grid,
+  .help-grid-two {
+    grid-template-columns: 1fr;
+  }
+
+  .score-dial {
+    width: 144px;
+    height: 144px;
   }
 }

@@ -12,21 +12,52 @@ LegacyModernizeAI is a hackathon-ready prototype for AI-assisted codebase modern
 
 ## Quick Start
 
-### One-Click Run Script
+### Windows PowerShell
 
-From PowerShell:
-
-```powershell
-.\run.ps1
-```
-
-That starts the simplest demo mode and serves the UI at `http://localhost:4000`.
-
-For split dev mode with separate API and Vite windows:
+Default dev mode with browser auto-open:
 
 ```powershell
-.\run.ps1 -Mode dev
+.\run
 ```
+
+That starts the API and Vite UI, then opens `http://localhost:5173`.
+
+Single-server demo mode:
+
+```powershell
+.\run -Mode demo
+```
+
+That builds the frontend, starts the API, and opens `http://localhost:4000`.
+
+If script execution is blocked:
+
+```powershell
+Set-ExecutionPolicy -Scope Process Bypass
+.\run
+```
+
+### macOS or Linux
+
+Make the script executable once:
+
+```bash
+chmod +x ./run.sh
+```
+
+Default dev mode with browser auto-open:
+
+```bash
+./run.sh
+```
+
+Single-server demo mode:
+
+```bash
+./run.sh demo
+```
+
+### Manual Start
 
 1. Install dependencies:
 
@@ -61,7 +92,7 @@ Then open `http://localhost:4000`. The API serves the built dashboard as well as
 
 ### If Node Is Not Installed Globally
 
-This repo can also run with the portable Node runtime placed under `tools/node`:
+On Windows, this repo can also run with the portable Node runtime placed under `tools/node`:
 
 ```powershell
 $env:Path='D:\Project\LegacyModernizeAI\tools\node;' + $env:Path

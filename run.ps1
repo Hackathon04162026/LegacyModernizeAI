@@ -1,6 +1,6 @@
 param(
     [ValidateSet("demo", "dev")]
-    [string]$Mode = "demo"
+    [string]$Mode = "dev"
 )
 
 $ErrorActionPreference = "Stop"
@@ -20,6 +20,15 @@ Set-Location $repoRoot
 Write-Host "Using repo:" $repoRoot
 Write-Host "Mode:" $Mode
 
+function Open-UrlInBackground {
+    param(
+        [string]$Url,
+        [int]$DelaySeconds = 4
+    )
+
+    Start-Process powershell -ArgumentList "-WindowStyle", "Hidden", "-Command", "Start-Sleep -Seconds $DelaySeconds; Start-Process '$Url'" | Out-Null
+}
+
 if ($Mode -eq "demo") {
     Write-Host "Installing dependencies if needed..."
     & $npmCmd install
@@ -28,7 +37,8 @@ if ($Mode -eq "demo") {
     & $npmCmd run build
 
     Write-Host "Starting API on http://localhost:4000 ..."
-    Write-Host "Open http://localhost:4000 after the server starts."
+    Write-Host "Opening http://localhost:4000 after the server starts."
+    Open-UrlInBackground -Url "http://localhost:4000" -DelaySeconds 5
     & $npmCmd run dev:api
     exit $LASTEXITCODE
 }
@@ -41,6 +51,7 @@ Start-Process powershell -ArgumentList "-NoExit", "-Command", "Set-Location '$re
 
 Write-Host "Starting web app in a new PowerShell window..."
 Start-Process powershell -ArgumentList "-NoExit", "-Command", "Set-Location '$repoRoot'; `$env:Path='$nodeRoot;' + `$env:Path; & '$npmCmd' run dev:web"
+Open-UrlInBackground -Url "http://localhost:5173" -DelaySeconds 6
 
 Write-Host ""
 Write-Host "Dev mode started."

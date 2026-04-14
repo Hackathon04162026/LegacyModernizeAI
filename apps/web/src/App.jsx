@@ -1,4 +1,4 @@
-﻿import { useEffect, useState } from "react";
+import { useEffect, useRef, useState } from "react";
 import { mockReport } from "./mockReport";
 
 const apiBase = import.meta.env.VITE_API_BASE_URL || "http://localhost:4000";
@@ -9,6 +9,7 @@ const nav = [
   ["analysis", "Analysis", "Security and complexity"],
   ["documentation", "Documentation", "Confluence-ready notes"],
   ["roadmap", "Roadmap", "Migration steps"],
+  ["help", "Help", "How it works"],
 ];
 
 const technologyTargets = {
@@ -51,6 +52,11 @@ const label = (item) => item?.title || item?.label || item?.name || "Item";
 const detail = (item) => item?.detail || item?.summary || item?.note || item?.description || "";
 const meta = (item) => item?.meta || item?.status || item?.effort || item?.value || item?.version || "";
 const slug = (value) => String(value || "sample-project").toLowerCase().replace(/[^a-z0-9]+/g, "-").replace(/^-+|-+$/g, "");
+const toMetricNumber = (value, fallback = 0) => {
+  const parsed = Number(value);
+  return Number.isFinite(parsed) ? parsed : fallback;
+};
+const clampPercent = (value) => Math.max(0, Math.min(100, toMetricNumber(value, 0)));
 
 const createEmptyGeneratedSample = () => ({
   title: "Sample project preview",
@@ -59,11 +65,35 @@ const createEmptyGeneratedSample = () => ({
   lines: [],
 });
 
-function MetricCard({ label, value, accent, detail }) {
+function ScoreDial({ value, label, detail }) {
+  const score = clampPercent(value);
+  const dialStyle = {
+    background: `conic-gradient(#d85d39 0 ${score}%, rgba(28, 36, 49, 0.09) ${score}% 100%)`
+  };
+
   return (
-    <article className="metric-card">
+    <article className="score-dial-card">
+      <span className="metric-label">{label}</span>
+      <div className="score-dial" style={dialStyle}>
+        <div className="score-dial-center">
+          <strong>{score}</strong>
+          <span>/100</span>
+        </div>
+      </div>
+      <p>{detail}</p>
+    </article>
+  );
+}
+
+function MetricCard({ label, value, accent, detail, progress = 0, tone = "default" }) {
+  const safeProgress = clampPercent(progress);
+  return (
+    <article className={`metric-card metric-card-${tone}`}>
       <span className="metric-label">{label}</span>
       <strong style={{ color: accent }}>{value}</strong>
+      <div className="metric-bar" aria-hidden="true">
+        <div className="metric-bar-fill" style={{ width: `${safeProgress}%`, background: accent }} />
+      </div>
       {detail ? <p>{detail}</p> : null}
     </article>
   );
@@ -133,6 +163,14 @@ function Overview({ report }) {
   const tech = list(report.technologies, []);
   const dbs = list(report.databases, []);
   const libs = list(report.detectedLibraries || report.libraries, []);
+  const readinessScore = clampPercent(report.readinessScore);
+  const securityIssues = toMetricNumber(report.metrics?.securityIssues, 0);
+  const complexityHotspots = toMetricNumber(report.metrics?.complexityHotspots, 0);
+  const maintainabilityGain = clampPercent(report.metrics?.maintainabilityGainPercent);
+  const manualWeeks = toMetricNumber(report.metrics?.manualMigrationWeeks, 0);
+  const assistedWeeks = toMetricNumber(report.metrics?.codexAssistedWeeks, 0);
+  const timeSaved = Math.max(0, manualWeeks - assistedWeeks);
+  const acceleration = manualWeeks > 0 ? clampPercent(((manualWeeks - assistedWeeks) / manualWeeks) * 100) : 0;
   const summary = [
     ["Repository", report.repoUrl || emptyText],
     ["Source", report.sourceType || emptyText],
@@ -142,24 +180,99 @@ function Overview({ report }) {
 
   return (
     <Panel eyebrow="Overview" title="Snapshot of the current codebase" description="A concise view of the detected stack, repository metadata, and modernization readiness.">
-      <section className="metrics-grid metrics-grid-home">
-        <MetricCard label="Readiness score" value={`${report.readinessScore ?? "-"}/100`} accent="#d85d39" detail="A fast view of modernization confidence." />
-        <MetricCard label="Security issues" value={report.metrics?.securityIssues ?? "-"} accent="#c94e63" detail="Hotspots that need attention before the upgrade." />
-        <MetricCard label="Complexity hotspots" value={report.metrics?.complexityHotspots ?? "-"} accent="#c88c1f" detail="Areas that may slow change execution." />
-        <MetricCard label="Effort reduction" value={`${report.metrics?.maintainabilityGainPercent ?? "-"}%`} accent="#2f966f" detail="Estimated maintainability improvement after the migration." />
+      <section className="overview-hero">
+        <ScoreDial label="Readiness score" value={readinessScore} detail="Modernization confidence based on stack age, hotspot count, and migration sequencing." />
+        <div className="metrics-grid metrics-grid-overview">
+          <MetricCard
+            label="Security pressure"
+            value={securityIssues}
+            accent="#c94e63"
+            progress={Math.min(100, securityIssues * 20)}
+            tone="risk"
+            detail="Code paths and dependencies that need security review before upgrade execution."
+          />
+          <MetricCard
+            label="Complexity hotspots"
+            value={complexityHotspots}
+            accent="#c88c1f"
+            progress={Math.min(100, complexityHotspots * 18)}
+            tone="warning"
+            detail="High-friction modules likely to slow safe refactoring and testing."
+          />
+          <MetricCard
+            label="Maintainability gain"
+            value={`${maintainabilityGain}%`}
+            accent="#2f966f"
+            progress={maintainabilityGain}
+            tone="success"
+            detail="Expected maintainability lift once the selected modernization path lands."
+          />
+          <MetricCard
+            label="Time saved with Codex"
+            value={manualWeeks > 0 ? `${timeSaved}w` : "-"}
+            accent="#3f74d9"
+            progress={acceleration}
+            tone="info"
+            detail={manualWeeks > 0 ? `${acceleration}% faster than the manual-only migration estimate.` : "Migration acceleration appears after deep analysis estimates are available."}
+          />
+        </div>
       </section>
+
+      <section className="overview-analytics">
+        <article className="analytics-card analytics-card-dark">
+          <span className="metric-label">Delivery outlook</span>
+          <h3>Manual vs Codex-assisted migration</h3>
+          <div className="effort-bars">
+            <div>
+              <div className="effort-meta">
+                <span>Manual path</span>
+                <strong>{manualWeeks || "-"} weeks</strong>
+              </div>
+              <div className="effort-track"><div className="effort-fill effort-fill-manual" style={{ width: `${manualWeeks > 0 ? 100 : 0}%` }} /></div>
+            </div>
+            <div>
+              <div className="effort-meta">
+                <span>With Codex agents</span>
+                <strong>{assistedWeeks || "-"} weeks</strong>
+              </div>
+              <div className="effort-track"><div className="effort-fill effort-fill-assisted" style={{ width: `${manualWeeks > 0 ? Math.max(18, (assistedWeeks / manualWeeks) * 100) : 0}%` }} /></div>
+            </div>
+          </div>
+          <p>{manualWeeks > 0 ? `${timeSaved} weeks can be redirected from manual analysis toward refactoring, validation, and rollout prep.` : "Run deep analysis to unlock the full effort comparison."}</p>
+        </article>
+
+        <article className="analytics-card">
+          <span className="metric-label">Portfolio mix</span>
+          <h3>Detected footprint</h3>
+          <div className="footprint-grid">
+            <div><strong>{tech.length}</strong><span>Technologies</span></div>
+            <div><strong>{dbs.length}</strong><span>Databases</span></div>
+            <div><strong>{libs.length}</strong><span>Libraries</span></div>
+            <div><strong>{report.analyzedFilesCount ?? "-"}</strong><span>Files scanned</span></div>
+          </div>
+          <p>The overview combines framework inventory, data tier visibility, and dependency signals into a single modernization baseline.</p>
+        </article>
+      </section>
+
       <div className="summary-strip">{summary.map(([k, v]) => <div key={k}><span>{k}</span><strong>{v}</strong></div>)}</div>
-      <div className="stack-columns">
+
+      <div className="stack-columns stack-columns-rich">
         {[
-          ["Technologies", tech, "No technologies detected yet."],
-          ["Databases", dbs, "No databases detected yet."],
-          ["Libraries", libs, "No libraries detected yet."],
-        ].map(([title, items, fallback]) => (
-          <article key={title}>
+          ["Technologies", tech, "No technologies detected yet.", "Frameworks, runtimes, and primary stack anchors surfaced from manifests and source evidence."],
+          ["Databases", dbs, "No databases detected yet.", "Database engines and procedural assets that influence migration sequencing and compatibility."],
+          ["Libraries", libs, "No libraries detected yet.", "Supporting packages that may need coordinated upgrades alongside the core platform."],
+        ].map(([title, items, fallback, description]) => (
+          <article key={title} className="inventory-card">
             <h3>{title}</h3>
+            <p>{description}</p>
             {items.length ? (
-              <div className="tag-cloud">
-                {items.map((item) => <span key={`${title}-${label(item)}`}>{label(item)}</span>)}
+              <div className="inventory-list">
+                {items.map((item) => (
+                  <div key={`${title}-${label(item)}`} className="inventory-pill">
+                    <strong>{label(item)}</strong>
+                    <span>{detail(item) || meta(item) || item.currentVersion || "Detected in repository"}</span>
+                  </div>
+                ))}
               </div>
             ) : (
               <p className="muted">{fallback}</p>
@@ -194,6 +307,177 @@ function Analysis({ report, groups }) {
         <article><span>Complexity hotspots</span><strong>{report.metrics?.complexityHotspots ?? "-"}</strong></article>
         <article><span>Maintainability gain</span><strong>{report.metrics?.maintainabilityGainPercent ?? "-"}%</strong></article>
       </div>
+    </Panel>
+  );
+}
+
+function Help() {
+  const featureCards = [
+    {
+      title: "Home",
+      detail: "Start with a repository path or a sample project, run a quick scan, choose target versions, and launch the deeper analysis only after the team agrees on the target baseline.",
+      points: ["Best for first-time users and live demos", "Shows repository intake, quick scan, target selection, and sample generation"],
+    },
+    {
+      title: "Overview",
+      detail: "Turns technical findings into a leadership-friendly modernization scorecard with readiness, risk pressure, time savings, and footprint metrics.",
+      points: ["Great for sponsors, architects, and delivery leads", "Highlights where Codex can shorten analysis and planning time"],
+    },
+    {
+      title: "Analysis",
+      detail: "Shows the areas that need the most attention: security issues, complexity hotspots, and possible PII exposure that make upgrades risky.",
+      points: ["Explains what can be automated and what still needs human review", "Helps new team members understand where to focus first"],
+    },
+    {
+      title: "Documentation",
+      detail: "Generates onboarding-friendly notes and Confluence-ready pages so new developers do not spend weeks reverse-engineering a legacy application.",
+      points: ["Useful for handover, onboarding, architecture notes, and release planning", "Connects modernization work to living documentation"],
+    },
+    {
+      title: "Roadmap",
+      detail: "Breaks migration into understandable phases with effort comparisons between manual delivery and Codex-assisted execution.",
+      points: ["Shows a believable path instead of a vague AI promise", "Helps enterprise teams plan budget, sequencing, and review gates"],
+    },
+  ];
+
+  const benefits = [
+    "Reduces weeks of manual repository discovery and dependency mapping.",
+    "Helps new engineers get context without relying only on tribal knowledge.",
+    "Highlights security, complexity, and documentation gaps before migration starts.",
+    "Creates a shared modernization plan that engineering and leadership can both understand.",
+    "Shows where Codex accelerates work while keeping manual review for risky areas.",
+  ];
+
+  const walkthrough = [
+    ["Step 1", "Enter a repository path or choose one of the built-in sample projects."],
+    ["Step 2", "Run quick analysis to detect the live technologies, libraries, and databases inside the repository."],
+    ["Step 3", "Pick the desired target versions for the main stack, supporting libraries, and database platform."],
+    ["Step 4", "Run deep analysis to unlock the detailed modernization findings, documentation, and roadmap pages."],
+    ["Step 5", "Review generated documentation, Confluence links, and migration phases with the delivery team."],
+    ["Step 6", "Approve the target direction and generate a sample modernized project output for discussion."],
+  ];
+
+  const guidanceAssets = [
+    {
+      title: "Step-by-step PDF guidelines",
+      detail: "A page-by-page walkthrough with screenshot guidance, key highlights, and the order to present each part of the workspace clearly.",
+      meta: "PDF guide",
+      link: `${apiBase}/submission-assets/walkthrough-with-screenshots.md`,
+    },
+    {
+      title: "Video guide with narration",
+      detail: "A simple video flow with spoken explanation so the recording explains each page, the business problem, and the enterprise value in clear language.",
+      meta: "Video guide",
+      link: `${apiBase}/submission-assets/video-script-final.md`,
+    },
+  ];
+
+  return (
+    <Panel eyebrow="Help" title="How LegacyModernizeAI works" description="A simple guide to what the workspace does, why each page exists, and how it helps enterprise teams modernize legacy applications faster and with more confidence.">
+      <section className="help-hero">
+        <article className="help-story-card help-story-card-dark">
+          <span className="metric-label">About the project</span>
+          <h3>LegacyModernizeAI turns hidden legacy knowledge into a visible modernization plan.</h3>
+          <p>Enterprise teams often inherit applications that nobody fully understands, where documentation is stale, dependencies are outdated, and migration decisions take months. This workspace shortens that discovery phase by scanning the codebase, surfacing what matters, and organizing the results into a plan that teams can act on.</p>
+        </article>
+        <article className="help-story-card">
+          <span className="metric-label">Why it matters</span>
+          <ul>
+            {benefits.map((item) => <li key={item}>{item}</li>)}
+          </ul>
+        </article>
+      </section>
+
+      <section className="help-grid">
+        {featureCards.map((card) => (
+          <article key={card.title} className="help-card">
+            <span className="metric-label">{card.title}</span>
+            <h3>{card.title}</h3>
+            <p>{card.detail}</p>
+            <ul>
+              {card.points.map((point) => <li key={point}>{point}</li>)}
+            </ul>
+          </article>
+        ))}
+      </section>
+
+      <section className="help-grid help-grid-two">
+        <article className="help-card">
+          <span className="metric-label">Workspace flow</span>
+          <h3>How the workspace is typically used</h3>
+          <div className="help-steps">
+            {walkthrough.map(([step, text]) => (
+              <div key={step}>
+                <strong>{step}</strong>
+                <p>{text}</p>
+              </div>
+            ))}
+          </div>
+        </article>
+
+        <article className="help-card">
+          <span className="metric-label">Business value</span>
+          <h3>How the workspace supports enterprise teams</h3>
+          <div className="help-steps">
+            <div>
+              <strong>Faster onboarding</strong>
+              <p>New developers can see architecture clues, risk areas, and documentation in one place instead of piecing them together over several weeks.</p>
+            </div>
+            <div>
+              <strong>Safer upgrades</strong>
+              <p>The workspace separates what can be automated from what needs manual sign-off, which is essential for enterprise modernization.</p>
+            </div>
+            <div>
+              <strong>Real delivery value</strong>
+              <p>This is not just code generation. It supports discovery, planning, documentation, and modernization readiness end to end.</p>
+            </div>
+          </div>
+        </article>
+      </section>
+
+      <section className="help-resource-section">
+        <div className="section-heading">
+          <span>Guides</span>
+          <h2>PDF and video guidance</h2>
+          <p>Use these guides to present the workspace clearly, capture screenshots in the right order, and record a narrated video that explains the product in simple language.</p>
+        </div>
+        <div className="help-resource-list help-resource-grid">
+          {guidanceAssets.map((asset) => (
+            <a key={asset.title} className="help-resource" href={asset.link} target="_blank" rel="noreferrer">
+              <div>
+                <strong>{asset.title}</strong>
+                <p>{asset.detail}</p>
+              </div>
+              <span>{asset.meta}</span>
+            </a>
+          ))}
+        </div>
+      </section>
+
+      <section className="help-grid help-grid-two">
+        <article className="help-card">
+          <span className="metric-label">Recording guidance</span>
+          <h3>Suggested order for screenshots and video capture</h3>
+          <div className="help-steps">
+            <div>
+              <strong>1. Start with the problem</strong>
+              <p>Open the home page and explain the pain of legacy discovery, missing documentation, and slow onboarding.</p>
+            </div>
+            <div>
+              <strong>2. Show the main workspace pages</strong>
+              <p>Capture Home, Overview, Analysis, Documentation, Roadmap, and the generated sample outcome in a simple sequence.</p>
+            </div>
+            <div>
+              <strong>3. Finish with business value</strong>
+              <p>Close on faster onboarding, clearer upgrade planning, and reduced time spent manually understanding old systems.</p>
+            </div>
+            <div>
+              <strong>4. Keep the voiceover running</strong>
+              <p>The video guide is written as narration, so the recording can explain what is on screen while moving from page to page.</p>
+            </div>
+          </div>
+        </article>
+      </section>
     </Panel>
   );
 }
@@ -297,6 +581,142 @@ function buildTargetOptionsForLibrary(library) {
   return library?.targetVersions?.length ? library.targetVersions : libraryTargets;
 }
 
+function inferTechnologiesFromLegacyReport(report) {
+  const currentVersion = String(report.currentVersion || "");
+  const items = [];
+
+  if (/java/i.test(currentVersion)) {
+    items.push({
+      key: "java",
+      label: "Java",
+      category: "runtime",
+      currentVersion,
+      targetVersions: Array.isArray(report.availableTargetVersions) && report.availableTargetVersions.length ? report.availableTargetVersions : technologyTargets.java,
+    });
+  }
+
+  if (/spring boot/i.test(currentVersion)) {
+    const springVersion = currentVersion.match(/Spring Boot\s+([^\s/]+)/i)?.[1] || "";
+    items.push({
+      key: "spring-boot",
+      label: "Spring Boot",
+      category: "framework",
+      currentVersion: springVersion || currentVersion,
+      targetVersions: ["Spring Boot 3.x"],
+    });
+  }
+
+  if (/angular/i.test(currentVersion) || report.detectedProjectType === "angular") {
+    items.push({
+      key: "angular",
+      label: "Angular",
+      category: "framework",
+      currentVersion: currentVersion || "Angular legacy baseline",
+      targetVersions: technologyTargets.angular,
+    });
+  }
+
+  if (/react/i.test(currentVersion) || report.detectedProjectType === "react") {
+    items.push({
+      key: "react",
+      label: "React",
+      category: "framework",
+      currentVersion: currentVersion || "React legacy baseline",
+      targetVersions: technologyTargets.react,
+    });
+  }
+
+  return items;
+}
+
+function inferDatabasesFromLegacyReport(report) {
+  const database = String(report.database || "");
+  if (!database) return [];
+
+  if (/oracle/i.test(database)) {
+    return [{ key: "oracle", title: "Oracle / PL-SQL", detail: database, targetVersions: databaseTargets.oracle }];
+  }
+
+  if (/sql server|mssql/i.test(database)) {
+    return [{ key: "mssql", title: "MS SQL Server", detail: database, targetVersions: databaseTargets.mssql }];
+  }
+
+  if (/postgres/i.test(database)) {
+    return [{ key: "postgres", title: "PostgreSQL", detail: database, targetVersions: databaseTargets.postgres }];
+  }
+
+  return [{ key: "none", title: database, detail: database, targetVersions: databaseTargets.none }];
+}
+
+function inferLibrariesFromLegacyReport(report) {
+  const projectType = String(report.detectedProjectType || "").toLowerCase();
+  const currentVersion = String(report.currentVersion || "");
+  const items = [];
+
+  if (projectType === "java" && /spring boot/i.test(currentVersion)) {
+    const springVersion = currentVersion.match(/Spring Boot\s+([^\s/]+)/i)?.[1] || "";
+    items.push({
+      name: "spring-boot-starter-parent",
+      version: springVersion || currentVersion,
+      family: "spring",
+      targetVersions: ["Spring Boot 3.x", "Current major", "Keep current"],
+    });
+  }
+
+  if (projectType === "angular") {
+    items.push({
+      name: "@angular/core",
+      version: currentVersion || "Legacy version",
+      family: "angular",
+      targetVersions: [...technologyTargets.angular, "Keep current"],
+    });
+  }
+
+  if (projectType === "react") {
+    items.push({
+      name: "react",
+      version: currentVersion || "Legacy version",
+      family: "react",
+      targetVersions: [...technologyTargets.react, "Keep current"],
+    });
+  }
+
+  return items;
+}
+
+function normalizeIncomingReport(report) {
+  const technologies = Array.isArray(report?.technologies) && report.technologies.length
+    ? report.technologies
+    : inferTechnologiesFromLegacyReport(report || {});
+  const databases = Array.isArray(report?.databases) && report.databases.length
+    ? report.databases
+    : inferDatabasesFromLegacyReport(report || {});
+  const detectedLibraries = Array.isArray(report?.detectedLibraries) && report.detectedLibraries.length
+    ? report.detectedLibraries
+    : inferLibrariesFromLegacyReport(report || {});
+
+  const summary = report?.summary || {
+    headline: technologies.length || databases.length
+      ? `Quick scan found ${(technologies[0]?.label || report?.detectedProjectType || "the repository")} and ${(databases[0]?.title || report?.database || "the current data tier")} in the repository.`
+      : "The repository has been profiled and is ready for target planning.",
+    nextStep: "Review the detected stack and select the desired target versions before running deep analysis.",
+    focus: technologies.length || databases.length
+      ? `${technologies[0]?.label || "The detected stack"} and ${databases[0]?.title || report?.database || "the detected database"} are the main anchors for the next step.`
+      : "Technology, libraries, and database signals are available for review.",
+    libraryNote: detectedLibraries.length
+      ? `${detectedLibraries.length} libraries were detected and can be reviewed in the target section.`
+      : "Detected libraries will appear in the target section for modernization planning.",
+  };
+
+  return {
+    ...report,
+    technologies,
+    databases,
+    detectedLibraries,
+    summary,
+  };
+}
+
 export default function App() {
   const [activeView, setActiveView] = useState("home");
   const [report, setReport] = useState(mockReport);
@@ -310,6 +730,7 @@ export default function App() {
   const [quickError, setQuickError] = useState("");
   const [quickProgress, setQuickProgress] = useState(0);
   const [showQuickResults, setShowQuickResults] = useState(false);
+  const [quickPhase, setQuickPhase] = useState("idle");
   const [approvalChoice, setApprovalChoice] = useState("no");
   const [generatedSample, setGeneratedSample] = useState(createEmptyGeneratedSample());
   const [generatedReady, setGeneratedReady] = useState(false);
@@ -317,11 +738,13 @@ export default function App() {
   const [technologyTargetsState, setTechnologyTargetsState] = useState({});
   const [databaseTargetsState, setDatabaseTargetsState] = useState({});
   const [libraryTargetsState, setLibraryTargetsState] = useState({});
+  const quickRevealTimerRef = useRef(null);
 
   const technologies = list(report.technologies, []);
   const databases = list(report.databases, []);
   const libraries = list(report.detectedLibraries || report.libraries, []);
-  const quickHasData = showQuickResults && quickComplete && (technologies.length > 0 || databases.length > 0 || libraries.length > 0);
+  const quickIsLoading = quickPhase === "loading";
+  const quickHasData = quickPhase === "ready" && showQuickResults && quickComplete;
 
   const bannerSummary = deepComplete
     ? "Deep analysis unlocked"
@@ -339,6 +762,13 @@ export default function App() {
         setSamples([]);
       }
     })();
+  }, []);
+
+  useEffect(() => () => {
+    if (quickRevealTimerRef.current) {
+      window.clearTimeout(quickRevealTimerRef.current);
+      quickRevealTimerRef.current = null;
+    }
   }, []);
 
   useEffect(() => {
@@ -385,7 +815,7 @@ export default function App() {
     ];
   })();
 
-  const pageTitle = ({ home: "Home", overview: "Overview", analysis: "Analysis", documentation: "Documentation", roadmap: "Roadmap" }[activeView] || "Home");
+  const pageTitle = ({ home: "Home", overview: "Overview", analysis: "Analysis", documentation: "Documentation", roadmap: "Roadmap", help: "Help" }[activeView] || "Home");
 
   function buildTargetSelections() {
     return {
@@ -420,13 +850,17 @@ export default function App() {
   }
 
   function setInitialSelections(nextReport) {
-    setReport(nextReport);
+    setReport(normalizeIncomingReport(nextReport));
     setTechnologyTargetsState({});
     setDatabaseTargetsState({});
     setLibraryTargetsState({});
   }
 
   function applySample(sample) {
+    if (quickRevealTimerRef.current) {
+      window.clearTimeout(quickRevealTimerRef.current);
+      quickRevealTimerRef.current = null;
+    }
     setRepoUrl(sample.repoUrl || "");
     setShowSampleBrowser(false);
     setQuickComplete(false);
@@ -434,6 +868,7 @@ export default function App() {
     setQuickError("");
     setQuickProgress(0);
     setShowQuickResults(false);
+    setQuickPhase("idle");
     setGeneratedReady(false);
     setApprovalChoice("no");
     setGeneratedSample(createEmptyGeneratedSample());
@@ -447,6 +882,13 @@ export default function App() {
   async function runQuickAnalysis(event) {
     event.preventDefault();
     if (!repoUrl.trim()) return;
+    const startedAt = Date.now();
+    const minimumLoadingMs = 1200;
+
+    if (quickRevealTimerRef.current) {
+      window.clearTimeout(quickRevealTimerRef.current);
+      quickRevealTimerRef.current = null;
+    }
 
     setLoadingQuick(true);
     setQuickComplete(false);
@@ -454,6 +896,7 @@ export default function App() {
     setQuickError("");
     setQuickProgress(6);
     setShowQuickResults(false);
+    setQuickPhase("loading");
     setGeneratedReady(false);
     setApprovalChoice("no");
     setGeneratedSample(createEmptyGeneratedSample());
@@ -488,13 +931,22 @@ export default function App() {
 
       if (!response.ok) throw new Error("analysis failed");
       const data = await response.json();
+      const elapsed = Date.now() - startedAt;
+      const remaining = Math.max(0, minimumLoadingMs - elapsed);
+      if (remaining > 0) {
+        await new Promise((resolve) => {
+          quickRevealTimerRef.current = window.setTimeout(() => {
+            quickRevealTimerRef.current = null;
+            resolve();
+          }, remaining);
+        });
+      }
       window.clearInterval(progressTimer);
       setQuickProgress(100);
       setQuickComplete(true);
       setInitialSelections(data);
-      window.setTimeout(() => {
-        setShowQuickResults(true);
-      }, 180);
+      setShowQuickResults(true);
+      setQuickPhase("ready");
       setActiveView("home");
     } catch {
       window.clearInterval(progressTimer);
@@ -502,6 +954,7 @@ export default function App() {
       setDeepComplete(false);
       setQuickError("Quick analysis failed. Check that the API is running and the repository path is valid, then try again.");
       setShowQuickResults(false);
+      setQuickPhase("idle");
       setInitialSelections({ ...mockReport, repoUrl, analyzedAt: null, sourceType: "manual" });
       setActiveView("home");
     } finally {
@@ -588,6 +1041,7 @@ export default function App() {
     if (activeView === "analysis") return <Analysis report={report} groups={groups} />;
     if (activeView === "documentation") return <Documentation report={report} />;
     if (activeView === "roadmap") return <Roadmap report={report} />;
+    if (activeView === "help") return <Help />;
     return null;
   }
 
@@ -613,7 +1067,7 @@ export default function App() {
 
         <nav className="topnav" aria-label="Primary navigation">
           {nav.map(([id, title, desc]) => {
-            const locked = id !== "home" && !deepComplete;
+            const locked = id !== "home" && id !== "help" && !deepComplete;
             return (
               <button
                 key={id}
@@ -665,8 +1119,8 @@ export default function App() {
                   <button type="button" className="secondary-button" onClick={() => setShowSampleBrowser((current) => !current)}>
                     {showSampleBrowser ? "Hide sample folders" : "Browse sample folders"}
                   </button>
-                  <button type="submit" disabled={loadingQuick || !repoUrl.trim()}>
-                    {loadingQuick ? "Running quick analysis..." : "Quick analysis"}
+                  <button type="submit" disabled={quickIsLoading || !repoUrl.trim()}>
+                    {quickIsLoading ? "Running quick analysis..." : "Quick analysis"}
                   </button>
                 </div>
               </form>
@@ -706,7 +1160,7 @@ export default function App() {
             {quickError ? <p className="error-banner">{quickError}</p> : null}
           </Panel>
 
-          {loadingQuick ? (
+          {quickIsLoading ? (
             <LoadingBlock
               title="Quick analysis in progress"
               description="Detected technologies, libraries, databases, and target selectors will appear only after the scan reaches 100%."
@@ -867,7 +1321,7 @@ export default function App() {
             </>
           ) : null}
         </div>
-      ) : deepComplete ? renderPage() : (
+      ) : activeView === "help" ? renderPage() : deepComplete ? renderPage() : (
         <Panel eyebrow="Locked" title="Run deep analysis to unlock the detailed pages" description="Overview, analysis, documentation, and roadmap pages become available after the deep analysis completes.">
           <p className="muted">The top navigation stays disabled until the project moves past the quick analysis stage.</p>
         </Panel>
@@ -875,3 +1329,5 @@ export default function App() {
     </main>
   );
 }
+
+
