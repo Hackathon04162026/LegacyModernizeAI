@@ -12,6 +12,22 @@ LegacyModernizeAI is a hackathon-ready prototype for AI-assisted codebase modern
 
 ## Quick Start
 
+### One-Click Run Script
+
+From PowerShell:
+
+```powershell
+.\run.ps1
+```
+
+That starts the simplest demo mode and serves the UI at `http://localhost:4000`.
+
+For split dev mode with separate API and Vite windows:
+
+```powershell
+.\run.ps1 -Mode dev
+```
+
 1. Install dependencies:
 
    ```bash
