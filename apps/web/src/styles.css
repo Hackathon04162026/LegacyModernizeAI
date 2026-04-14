@@ -84,6 +84,7 @@ button:focus-visible {
 .home-flow,
 .launch-grid,
 .insight-ribbon,
+.loading-state,
 .summary-strip,
 .stack-columns,
 .metrics-grid,
@@ -472,6 +473,30 @@ button:focus-visible {
   box-shadow: none;
 }
 
+.loading-state {
+  grid-template-columns: auto 1fr;
+  align-items: center;
+}
+
+.loading-spinner {
+  width: 42px;
+  height: 42px;
+  border-radius: 999px;
+  border: 4px solid rgba(216, 93, 57, 0.18);
+  border-top-color: var(--accent);
+  animation: spin 0.9s linear infinite;
+}
+
+.loading-state strong {
+  display: block;
+  font-family: "Space Grotesk", "Segoe UI", sans-serif;
+  font-size: 1rem;
+}
+
+.loading-state p {
+  margin: 6px 0 0;
+}
+
 .insight-ribbon {
   grid-template-columns: repeat(2, minmax(0, 1fr));
 }
@@ -755,6 +780,12 @@ ul {
 
 li {
   line-height: 1.55;
+}
+
+@keyframes spin {
+  to {
+    transform: rotate(360deg);
+  }
 }
 
 button:focus-visible,

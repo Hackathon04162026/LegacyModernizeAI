@@ -106,6 +106,20 @@ function TargetSelect({ labelText, value, onChange, options, hint }) {
   );
 }
 
+function LoadingBlock({ title, description }) {
+  return (
+    <Panel eyebrow="Scanning" title={title} description={description}>
+      <div className="loading-state">
+        <span className="loading-spinner" aria-hidden="true" />
+        <div>
+          <strong>Analyzing repository structure...</strong>
+          <p>The quick scan is reading manifests, stack markers, libraries, and database artifacts.</p>
+        </div>
+      </div>
+    </Panel>
+  );
+}
+
 function Overview({ report }) {
   const tech = list(report.technologies, []);
   const dbs = list(report.databases, []);
@@ -119,6 +133,12 @@ function Overview({ report }) {
 
   return (
     <Panel eyebrow="Overview" title="Snapshot of the current codebase" description="A concise view of the detected stack, repository metadata, and modernization readiness.">
+      <section className="metrics-grid metrics-grid-home">
+        <MetricCard label="Readiness score" value={`${report.readinessScore ?? "-"}/100`} accent="#d85d39" detail="A fast view of modernization confidence." />
+        <MetricCard label="Security issues" value={report.metrics?.securityIssues ?? "-"} accent="#c94e63" detail="Hotspots that need attention before the upgrade." />
+        <MetricCard label="Complexity hotspots" value={report.metrics?.complexityHotspots ?? "-"} accent="#c88c1f" detail="Areas that may slow change execution." />
+        <MetricCard label="Effort reduction" value={`${report.metrics?.maintainabilityGainPercent ?? "-"}%`} accent="#2f966f" detail="Estimated maintainability improvement after the migration." />
+      </section>
       <div className="summary-strip">{summary.map(([k, v]) => <div key={k}><span>{k}</span><strong>{v}</strong></div>)}</div>
       <div className="stack-columns">
         {[
@@ -396,6 +416,16 @@ export default function App() {
   function applySample(sample) {
     setRepoUrl(sample.repoUrl || "");
     setShowSampleBrowser(false);
+    setQuickComplete(false);
+    setDeepComplete(false);
+    setGeneratedReady(false);
+    setApprovalChoice("no");
+    setGeneratedSample(createEmptyGeneratedSample());
+    setReport({
+      ...mockReport,
+      repoUrl: sample.repoUrl || "",
+      sourceType: "sample"
+    });
   }
 
   async function runQuickAnalysis(event) {
@@ -403,6 +433,7 @@ export default function App() {
     if (!repoUrl.trim()) return;
 
     setLoadingQuick(true);
+    setQuickComplete(false);
     setDeepComplete(false);
     setGeneratedReady(false);
     setApprovalChoice("no");
@@ -639,13 +670,6 @@ export default function App() {
                 </article>
               </section>
 
-              <section className="metrics-grid metrics-grid-home">
-                <MetricCard label="Readiness score" value={`${report.readinessScore ?? "-"}/100`} accent="#d85d39" detail="A fast view of modernization confidence." />
-                <MetricCard label="Security issues" value={report.metrics?.securityIssues ?? "-"} accent="#c94e63" detail="Hotspots that need attention before the upgrade." />
-                <MetricCard label="Complexity hotspots" value={report.metrics?.complexityHotspots ?? "-"} accent="#c88c1f" detail="Areas that may slow change execution." />
-                <MetricCard label="Effort reduction" value={`${report.metrics?.maintainabilityGainPercent ?? "-"}%`} accent="#2f966f" detail="Estimated maintainability improvement after the migration." />
-              </section>
-
               <Panel eyebrow="Detected stack" title="Quick analysis results" description="Review the technologies, libraries, and databases discovered in the repository.">
                 <div className="detected-grid">
                   <article className="detected-card">
@@ -783,6 +807,19 @@ export default function App() {
                   ) : null}
                 </Panel>
               ) : null}
+            </>
+          ) : null}
+
+          {loadingQuick ? (
+            <>
+              <LoadingBlock
+                title="Quick analysis in progress"
+                description="Detected technologies, libraries, databases, and target selectors will appear as soon as the quick scan completes."
+              />
+              <LoadingBlock
+                title="Preparing target selectors"
+                description="Target technology, database, and library versions are being assembled from the detected stack."
+              />
             </>
           ) : null}
         </div>
