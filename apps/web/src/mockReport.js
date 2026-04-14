@@ -33,11 +33,53 @@ export const mockReport = {
     "Package procedures need dependency mapping before schema evolution.",
     "Dynamic SQL blocks require manual review for security and performance."
   ],
+  technologies: [
+    { title: "Java 8", detail: "Detected application runtime" },
+    { title: "Spring Boot 2.1", detail: "Framework baseline" },
+    { title: "Maven", detail: "Build and dependency management" }
+  ],
+  databases: [
+    { key: "oracle", title: "Oracle", detail: "Primary relational store" },
+    { key: "mssql", title: "MS SQL Server", detail: "Secondary reporting footprint" }
+  ],
+  detectedLibraries: [
+    { name: "Spring Security", version: "5.x", kind: "framework" },
+    { name: "Hibernate", version: "5.x", kind: "persistence" },
+    { name: "JUnit", version: "4.x", kind: "testing" }
+  ],
+  findings: {
+    security: [
+      { title: "Outdated dependencies", detail: "Several packages are several releases behind current supported versions." },
+      { title: "Authentication hardening", detail: "The current filter chain should be reviewed for modern security controls." }
+    ],
+    complexity: [
+      { title: "Large service classes", detail: "Some service methods bundle too many responsibilities." }
+    ],
+    pii: [
+      { title: "Sensitive fixture data", detail: "Legacy service logic contains personally identifiable values that should be masked." }
+    ],
+    suggestions: [
+      { title: "Split framework and data upgrades", detail: "Treat runtime modernization and procedure review as separate execution tracks." }
+    ]
+  },
   documentationSections: [
     "Service ownership and transaction boundaries",
     "Upgrade notes for deprecated annotations and security filters",
     "Onboarding guide for build, test, and deployment flow"
   ],
+  docsRows: [
+    { title: "Service ownership", detail: "Capture the primary owner, boundaries, and escalation path.", meta: "Architecture", link: "https://confluence.example.com/display/LM/Modernization+Workspace" },
+    { title: "Upgrade notes", detail: "Summarize API replacements and configuration changes.", meta: "Engineering", link: "https://confluence.example.com/display/LM/Modernization+Workspace" },
+    { title: "Release guide", detail: "Document build, test, deploy, and rollback steps.", meta: "Operations", link: "https://confluence.example.com/display/LM/Modernization+Workspace" }
+  ],
+  roadmapSections: [
+    { title: "Inventory and baseline", detail: "Confirm packages, database touchpoints, and runtime constraints.", meta: "Planned phase" },
+    { title: "Framework upgrade", detail: "Move to supported Spring and Java versions while stabilizing tests.", meta: "Planned phase" },
+    { title: "Operational hardening", detail: "Finish security review, release documentation, and rollout readiness.", meta: "Planned phase" }
+  ],
+  roadmap: {
+    summary: "Modernize the runtime, stabilize integration boundaries, and complete documentation and rollout readiness in staged phases."
+  },
   cannotAutomate: [
     "Business-rule validation for high-risk workflows",
     "Manual sign-off for schema-breaking database changes"

@@ -2,7 +2,7 @@
 
 ## Product Summary
 
-LegacyModernizeAI is an AI-assisted modernization cockpit designed for hackathon demos and enterprise discussions. The system accepts legacy repositories, identifies stack and database dependencies, generates a modernization roadmap, surfaces security and complexity hotspots, drafts onboarding documentation, and previews a modernized user experience.
+LegacyModernizeAI is an AI-assisted modernization cockpit designed for hackathon demos and enterprise discussions. The system accepts legacy repositories, identifies stack and database dependencies, can surface multiple technologies and multiple database dialects in the same repo, generates a modernization roadmap, surfaces security and complexity hotspots, drafts onboarding documentation, and previews a modernized user experience.
 
 ## Core Modules
 
@@ -10,6 +10,7 @@ LegacyModernizeAI is an AI-assisted modernization cockpit designed for hackathon
 
 - React + Vite dashboard
 - intake form for repository URL, stack, and database
+- navigation-driven workspace for overview, analysis, documentation, and roadmap pages
 - modernization KPI cards
 - phased migration plan
 - documentation panel
@@ -19,6 +20,7 @@ LegacyModernizeAI is an AI-assisted modernization cockpit designed for hackathon
 
 - Express API
 - stack-aware analysis templates
+- multi-technology and multi-database detection
 - recommendation engine for target versions
 - Codex orchestration placeholder for future prompt pipelines
 - effort calculator

@@ -1,6 +1,6 @@
 # LegacyModernizeAI
 
-LegacyModernizeAI is a hackathon-ready prototype for AI-assisted codebase modernization. It accepts legacy Java, Angular, and React projects with Oracle, MS SQL Server, or PL/SQL dependencies and produces upgrade guidance, hotspot analysis, migration estimates, developer docs, and a modernized preview.
+LegacyModernizeAI is a hackathon-ready prototype for AI-assisted codebase modernization. It accepts legacy Java, Angular, and React projects, can detect multiple technologies and database patterns in the same codebase, and produces upgrade guidance, hotspot analysis, migration estimates, developer docs, and a modernized preview.
 
 ## Monorepo Structure
 
@@ -83,5 +83,6 @@ npm run dev:web
 2. Load a sample project from `sample_project` or paste a repository URL.
 3. Confirm the detected stack and choose target versions.
 4. Run analysis to generate the modernization plan and effort estimate.
-5. Walk through hotspots, generated documentation, and the before/after preview.
-6. Finish by showing the CI workflow that supports the prototype delivery path.
+5. Use the navigation menu to move across the overview, analysis, documentation, and roadmap views.
+6. Review detected technologies, databases, libraries, security issues, complexity hotspots, PII findings, and upgrade suggestions.
+7. Finish by showing the CI workflow that supports the prototype delivery path.
