@@ -794,13 +794,13 @@ function buildDocsRows(documentationSections, technologies, databases) {
   const primaryTech = technologies[0]?.label || "Application stack";
   const databaseLabel = databases.length > 0 ? databases.map((item) => item.title).join(", ") : "No database selected";
   const confluenceLinks = {
-    workspace: "https://capgemini-team-hacakathon.atlassian.net/wiki/spaces/MFS/pages/524289/LegacyModernizeAI+Workspace",
-    architecture: "https://capgemini-team-hacakathon.atlassian.net/wiki/spaces/MFS/pages/557057/Project+Intake+Scan+Summary",
-    technology: "https://capgemini-team-hacakathon.atlassian.net/wiki/spaces/MFS/pages/589825/Technology+Library+Detection",
-    findings: "https://capgemini-team-hacakathon.atlassian.net/wiki/spaces/MFS/pages/295143/Security+Complexity+PII+Findings",
-    roadmap: "https://capgemini-team-hacakathon.atlassian.net/wiki/spaces/MFS/pages/622593/Migration+Roadmap+Effort+Estimate",
-    upgrades: "https://capgemini-team-hacakathon.atlassian.net/wiki/spaces/MFS/pages/655361/Upgrade+Recommendations",
-    documentation: "https://capgemini-team-hacakathon.atlassian.net/wiki/spaces/MFS/pages/557072/Generated+Developer+Documentation"
+    workspace: "https://capgemini-team-hacakathon.atlassian.net/wiki/spaces/~7120209fddd516fad3496fae695bef8805785e/pages/622608/LegacyModernizeAI+Documentation+Folder",
+    architecture: "https://capgemini-team-hacakathon.atlassian.net/wiki/spaces/~7120209fddd516fad3496fae695bef8805785e/pages/229495/LegacyModernizeAI+-+Project+Intake+and+Scan+Summary",
+    technology: "https://capgemini-team-hacakathon.atlassian.net/wiki/spaces/~7120209fddd516fad3496fae695bef8805785e/pages/229510/LegacyModernizeAI+-+Technology+and+Library+Detection",
+    findings: "https://capgemini-team-hacakathon.atlassian.net/wiki/spaces/~7120209fddd516fad3496fae695bef8805785e/pages/819201/LegacyModernizeAI+-+Security+Complexity+and+PII+Findings",
+    roadmap: "https://capgemini-team-hacakathon.atlassian.net/wiki/spaces/~7120209fddd516fad3496fae695bef8805785e/pages/622624/LegacyModernizeAI+-+Migration+Roadmap+and+Effort+Estimate",
+    upgrades: "https://capgemini-team-hacakathon.atlassian.net/wiki/spaces/~7120209fddd516fad3496fae695bef8805785e/pages/98307/LegacyModernizeAI+-+Upgrade+Recommendations",
+    documentation: "https://capgemini-team-hacakathon.atlassian.net/wiki/spaces/~7120209fddd516fad3496fae695bef8805785e/pages/851969/LegacyModernizeAI+-+Generated+Developer+Documentation"
   };
 
   return [
