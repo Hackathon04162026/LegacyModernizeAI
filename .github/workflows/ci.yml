@@ -1,12 +1,17 @@
-name: CI
+name: Modernization Pipeline
 
 on:
   push:
     branches: ["main"]
   pull_request:
+  workflow_dispatch:
+
+env:
+  NODE_VERSION: "22"
 
 jobs:
-  build-and-verify:
+  build_validate:
+    name: Build & Validate
     runs-on: ubuntu-latest
 
     steps:
@@ -16,11 +21,11 @@ jobs:
       - name: Setup Node
         uses: actions/setup-node@v4
         with:
-          node-version: 22
+          node-version: ${{ env.NODE_VERSION }}
           cache: npm
 
       - name: Install dependencies
-        run: npm install
+        run: npm ci
 
       - name: Lint
         run: npm run lint
@@ -30,8 +35,274 @@ jobs:
 
       - name: Start API
         run: |
-          npm run dev:api &
-          sleep 5
+          npm run dev:api > api.log 2>&1 &
+          echo $! > api.pid
+          sleep 6
 
       - name: Smoke check health endpoint
         run: curl --fail http://localhost:4000/api/health
+
+      - name: Upload build logs
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: build-logs
+          path: |
+            api.log
+            apps/web/dist
+
+  stack_discovery:
+    name: Stack Discovery
+    runs-on: ubuntu-latest
+    needs: build_validate
+
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Setup Node
+        uses: actions/setup-node@v4
+        with:
+          node-version: ${{ env.NODE_VERSION }}
+          cache: npm
+
+      - name: Install dependencies
+        run: npm ci
+
+      - name: Generate quick discovery report
+        shell: bash
+        run: |
+          mkdir -p artifacts
+          node --input-type=module <<'EOF'
+          import fs from "node:fs";
+          import path from "node:path";
+          import { analyzeRepositoryQuick } from "./apps/api/analyzer.js";
+
+          const repoRoot = process.cwd();
+          const samples = [
+            ["java-oracle-legacy", "Java / Oracle Legacy Sample"],
+            ["angular-mssql-legacy", "Angular / MS SQL Legacy Sample"],
+            ["react-legacy", "React Legacy Sample"],
+          ];
+
+          const results = [];
+          for (const [folder, label] of samples) {
+            const repoUrl = path.join(repoRoot, "sample_project", folder);
+            const report = await analyzeRepositoryQuick({ repoUrl });
+            results.push({
+              sample: label,
+              repoUrl,
+              technologies: report.technologies ?? [],
+              databases: report.databases ?? [],
+              libraries: report.detectedLibraries ?? [],
+              summary: report.summary ?? {},
+            });
+          }
+
+          fs.writeFileSync("artifacts/stack-discovery.json", JSON.stringify(results, null, 2));
+
+          const lines = [
+            "# Stack Discovery",
+            "",
+            "This stage captures the primary technologies, libraries, and databases found in the built-in sample repositories.",
+            "",
+          ];
+
+          for (const result of results) {
+            lines.push(`## ${result.sample}`);
+            lines.push(`- Repository: \`${result.repoUrl}\``);
+            lines.push(`- Technologies: ${result.technologies.map((item) => item.label || item.title).join(", ") || "None detected"}`);
+            lines.push(`- Databases: ${result.databases.map((item) => item.title || item.label).join(", ") || "None detected"}`);
+            lines.push(`- Libraries: ${result.libraries.map((item) => item.name || item.title).join(", ") || "None detected"}`);
+            if (result.summary.headline) {
+              lines.push(`- Summary: ${result.summary.headline}`);
+            }
+            lines.push("");
+          }
+
+          fs.writeFileSync("artifacts/stack-discovery.md", `${lines.join("\n")}\n`);
+          EOF
+
+      - name: Upload stack discovery artifact
+        uses: actions/upload-artifact@v4
+        with:
+          name: stack-discovery
+          path: artifacts/stack-discovery.*
+
+      - name: Publish stack discovery summary
+        run: cat artifacts/stack-discovery.md >> "$GITHUB_STEP_SUMMARY"
+
+  modernization_assessment:
+    name: Modernization Assessment
+    runs-on: ubuntu-latest
+    needs: stack_discovery
+
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Setup Node
+        uses: actions/setup-node@v4
+        with:
+          node-version: ${{ env.NODE_VERSION }}
+          cache: npm
+
+      - name: Install dependencies
+        run: npm ci
+
+      - name: Generate modernization assessment
+        shell: bash
+        run: |
+          mkdir -p artifacts
+          node --input-type=module <<'EOF'
+          import fs from "node:fs";
+          import path from "node:path";
+          import { analyzeRepositoryDeep } from "./apps/api/analyzer.js";
+
+          const repoRoot = process.cwd();
+          const repoUrl = path.join(repoRoot, "sample_project", "java-oracle-legacy");
+          const report = await analyzeRepositoryDeep({ repoUrl });
+
+          fs.writeFileSync("artifacts/modernization-assessment.json", JSON.stringify(report, null, 2));
+
+          const lines = [
+            "# Modernization Assessment",
+            "",
+            `- Repository: \`${repoUrl}\``,
+            `- Current stack: ${report.currentVersion || "Unavailable"}`,
+            `- Target stack: ${report.targetVersion || "Unavailable"}`,
+            `- Readiness score: ${report.readinessScore ?? "-"}/100`,
+            `- Security issues: ${report.metrics?.securityIssues ?? "-"}`,
+            `- Complexity hotspots: ${report.metrics?.complexityHotspots ?? "-"}`,
+            `- Manual estimate: ${report.metrics?.manualMigrationWeeks ?? "-"} weeks`,
+            `- With Codex assistance: ${report.metrics?.codexAssistedWeeks ?? "-"} weeks`,
+            "",
+            "## Upgrade Plan",
+            ...(report.upgradePlan || []).map((item) => `- ${item.phase}: ${item.detail}`),
+            "",
+            "## Documentation Focus",
+            ...((report.documentationSections || []).map((item) => `- ${item}`)),
+          ];
+
+          fs.writeFileSync("artifacts/modernization-assessment.md", `${lines.join("\n")}\n`);
+          EOF
+
+      - name: Upload modernization artifact
+        uses: actions/upload-artifact@v4
+        with:
+          name: modernization-assessment
+          path: artifacts/modernization-assessment.*
+
+      - name: Publish modernization summary
+        run: cat artifacts/modernization-assessment.md >> "$GITHUB_STEP_SUMMARY"
+
+  deploy_dev:
+    name: Deploy to Dev
+    runs-on: ubuntu-latest
+    needs: modernization_assessment
+    if: github.event_name != 'pull_request'
+    environment:
+      name: dev
+
+    steps:
+      - name: Download modernization artifact
+        uses: actions/download-artifact@v4
+        with:
+          name: modernization-assessment
+          path: artifacts
+
+      - name: Publish dev promotion summary
+        run: |
+          {
+            echo "## Deploy to Dev";
+            echo "";
+            echo "The current modernization assessment bundle is now promoted to the \`dev\` environment.";
+            echo "";
+            cat artifacts/modernization-assessment.md;
+          } >> "$GITHUB_STEP_SUMMARY"
+
+  quality_review:
+    name: Quality Review
+    runs-on: ubuntu-latest
+    needs: deploy_dev
+    if: github.event_name != 'pull_request'
+
+    steps:
+      - name: Download discovery artifact
+        uses: actions/download-artifact@v4
+        with:
+          name: stack-discovery
+          path: artifacts/discovery
+
+      - name: Download modernization artifact
+        uses: actions/download-artifact@v4
+        with:
+          name: modernization-assessment
+          path: artifacts/assessment
+
+      - name: Check required outputs
+        shell: bash
+        run: |
+          test -f artifacts/discovery/stack-discovery.json
+          test -f artifacts/assessment/modernization-assessment.json
+          test -f artifacts/assessment/modernization-assessment.md
+
+      - name: Publish quality summary
+        run: |
+          {
+            echo "## Quality Review";
+            echo "";
+            echo "- Discovery and assessment artifacts are present.";
+            echo "- The modernization summary is ready for reviewer inspection.";
+            echo "- Later promotions can use GitHub environment approvals for manual governance.";
+          } >> "$GITHUB_STEP_SUMMARY"
+
+  promote_stage:
+    name: Promote to Stage
+    runs-on: ubuntu-latest
+    needs: quality_review
+    if: github.event_name != 'pull_request'
+    environment:
+      name: stage
+
+    steps:
+      - name: Download modernization artifact
+        uses: actions/download-artifact@v4
+        with:
+          name: modernization-assessment
+          path: artifacts
+
+      - name: Publish stage promotion summary
+        run: |
+          {
+            echo "## Promote to Stage";
+            echo "";
+            echo "This job is intended to pause for environment approval when the \`stage\` environment is configured with required reviewers.";
+            echo "";
+            cat artifacts/modernization-assessment.md;
+          } >> "$GITHUB_STEP_SUMMARY"
+
+  promote_prod:
+    name: Promote to Prod
+    runs-on: ubuntu-latest
+    needs: promote_stage
+    if: github.event_name != 'pull_request'
+    environment:
+      name: prod
+
+    steps:
+      - name: Download modernization artifact
+        uses: actions/download-artifact@v4
+        with:
+          name: modernization-assessment
+          path: artifacts
+
+      - name: Publish production promotion summary
+        run: |
+          {
+            echo "## Promote to Prod";
+            echo "";
+            echo "This final promotion is designed for a reviewer-approved \`prod\` environment.";
+            echo "";
+            echo "The current run demonstrates how AI-assisted modernization analysis can move through an enterprise-style release path with human governance.";
+          } >> "$GITHUB_STEP_SUMMARY"

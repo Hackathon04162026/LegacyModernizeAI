@@ -117,3 +117,29 @@ npm run dev:web
 5. Use the navigation menu to move across the overview, analysis, documentation, and roadmap views.
 6. Review detected technologies, databases, libraries, security issues, complexity hotspots, PII findings, and upgrade suggestions.
 7. Finish by showing the CI workflow that supports the prototype delivery path.
+
+## GitHub Actions Demo Pipeline
+
+The GitHub Actions workflow is designed to show a presentable enterprise-style delivery path with these stages:
+
+- `Build & Validate`
+- `Stack Discovery`
+- `Modernization Assessment`
+- `Deploy to Dev`
+- `Quality Review`
+- `Promote to Stage`
+- `Promote to Prod`
+
+For the best demo experience, create these GitHub Environments in the repository settings:
+
+- `dev`
+- `stage`
+- `prod`
+
+Recommended approval setup:
+
+- `dev`: no required reviewer
+- `stage`: required reviewer enabled
+- `prod`: required reviewer enabled
+
+This lets GitHub visibly pause on the later promotions and show the manual `Approve and deploy` step in the workflow UI.
