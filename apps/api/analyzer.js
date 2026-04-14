@@ -5,6 +5,7 @@ import { execFile } from "node:child_process";
 import { promisify } from "node:util";
 
 const execFileAsync = promisify(execFile);
+const generatedSamplesRoot = path.resolve(process.cwd(), "generated_samples");
 
 const targetVersionsByStack = {
   java: ["Java 21", "Java 25"],
@@ -12,114 +13,156 @@ const targetVersionsByStack = {
   react: ["React 19"]
 };
 
+const databaseTargetVersionsByType = {
+  oracle: ["Oracle 19c", "Oracle 23ai"],
+  mssql: ["SQL Server 2022", "SQL Server 2025"],
+  postgres: ["PostgreSQL 16", "PostgreSQL 17"],
+  mysql: ["MySQL 8.4", "MySQL 9"],
+  sqlite: ["SQLite 3.46"]
+};
+
 const sourceExtensions = new Set([".java", ".js", ".jsx", ".ts", ".tsx"]);
 const databaseExtensions = new Set([".sql", ".pls", ".pks", ".pkb", ".prc"]);
 const packageJsonNames = new Set(["package.json"]);
 
-export async function analyzeRepository({ repoUrl, projectTypeHint, databaseHint }) {
+export async function analyzeRepository(input = {}) {
+  return analyzeRepositoryDeep(input);
+}
+
+export async function analyzeRepositoryQuick(input = {}) {
+  return withResolvedRepository(input.repoUrl, async (resolved) => {
+    const scan = await scanRepository({
+      repoPath: resolved.repoPath,
+      projectTypeHint: input.projectTypeHint,
+      databaseHint: input.databaseHint
+    });
+
+    return buildQuickReport(scan, {
+      repoUrl: input.repoUrl,
+      sourceType: resolved.sourceType
+    });
+  });
+}
+
+export async function analyzeRepositoryDeep(input = {}) {
+  return withResolvedRepository(input.repoUrl, async (resolved) => {
+    const scan = await scanRepository({
+      repoPath: resolved.repoPath,
+      projectTypeHint: input.projectTypeHint,
+      databaseHint: input.databaseHint
+    });
+
+    return buildDeepReport(scan, {
+      repoUrl: input.repoUrl,
+      sourceType: resolved.sourceType,
+      selectedTargets: normalizeTargetSelections(input)
+    });
+  });
+}
+
+export async function generateSampleProject(input = {}) {
+  const selections = normalizeTargetSelections(input);
+  const requestedName = input.projectName || input.name || "modernized-sample";
+  const folderSlug = sanitizeFolderName(requestedName);
+  const folderSuffix = `${folderSlug}-${Date.now().toString(36)}`;
+  const outputRoot = path.join(generatedSamplesRoot, folderSuffix);
+  const techEntries = selections.technologies.length > 0 ? selections.technologies : normalizeSelectionList(input.targetTechnologies);
+  const databaseEntries = selections.databases.length > 0 ? selections.databases : normalizeSelectionList(input.targetDatabases);
+  const libraryEntries = selections.libraries.length > 0 ? selections.libraries : normalizeSelectionList(input.targetLibraries);
+  const techLabels = uniqueLabels(techEntries);
+  const databaseLabels = uniqueLabels(databaseEntries);
+  const libraryLabels = uniqueLabels(libraryEntries);
+
+  await fs.mkdir(outputRoot, { recursive: true });
+
+  const createdFiles = [];
+  const manifest = {
+    generatedAt: new Date().toISOString(),
+    projectName: requestedName,
+    technologies: techLabels,
+    databases: databaseLabels,
+    libraries: libraryLabels
+  };
+
+  await writeGeneratedFile(outputRoot, "manifest.json", `${JSON.stringify(manifest, null, 2)}\n`, createdFiles);
+  await writeGeneratedFile(
+    outputRoot,
+    "README.md",
+    buildGeneratedReadme({
+      projectName: requestedName,
+      technologies: techLabels,
+      databases: databaseLabels,
+      libraries: libraryLabels
+    }),
+    createdFiles
+  );
+
+  if (techLabels.some((item) => item.key === "java")) {
+    await writeJavaSample(outputRoot, createdFiles);
+  }
+
+  if (techLabels.some((item) => item.key === "angular")) {
+    await writeAngularSample(outputRoot, createdFiles);
+  }
+
+  if (techLabels.some((item) => item.key === "react")) {
+    await writeReactSample(outputRoot, createdFiles);
+  }
+
+  if (databaseLabels.length > 0) {
+    await writeDatabaseSample(outputRoot, databaseLabels, createdFiles);
+  }
+
+  if (libraryLabels.length > 0) {
+    await writeLibraryNotes(outputRoot, libraryLabels, createdFiles);
+  }
+
+  return {
+    generatedAt: manifest.generatedAt,
+    outputRoot,
+    relativePath: path.relative(process.cwd(), outputRoot) || outputRoot,
+    projectName: requestedName,
+    technologies: techLabels,
+    databases: databaseLabels,
+    libraries: libraryLabels,
+    files: createdFiles,
+    summary: `Created a modernized sample project scaffold under ${outputRoot}.`
+  };
+}
+
+async function withResolvedRepository(repoUrl, callback) {
   const resolved = await resolveRepository(repoUrl);
 
   try {
-    const files = await listFiles(resolved.repoPath);
-    const manifests = await readRelevantFiles(resolved.repoPath, files);
-    const detectedProjectType = detectProjectType(manifests, projectTypeHint);
-    const versions = detectVersions(manifests, detectedProjectType);
-    const technologies = detectTechnologies(manifests, detectedProjectType, versions);
-    const databases = detectDatabases(manifests, databaseHint);
-    const detectedLibraries = detectLibraries(manifests, technologies);
-    const findings = buildFindings({
-      manifests,
-      projectType: detectedProjectType,
-      technologies,
-      databases,
-      detectedLibraries,
-      versions
-    });
-    const roadmap = buildRoadmap(detectedProjectType, versions, technologies, databases, findings);
-    const effort = buildEffort({
-      fileCount: files.length,
-      projectType: detectedProjectType,
-      findings,
-      technologies,
-      databases
-    });
-    const documentationSections = buildDocumentationSections(manifests, resolved.repoPath);
-    const databaseNotes = buildDatabaseNotes(manifests, databases);
-    const primaryTechnology = technologies[0] ?? {
-      key: detectedProjectType,
-      label: detectedProjectType === "java" ? "Java" : detectedProjectType === "angular" ? "Angular" : "React",
-      currentVersion: versions.currentVersion,
-      targetVersions: versions.targetVersions
-    };
-    const primaryDatabase = databases[0] ?? {
-      key: "none",
-      title: "No database selected"
-    };
-    const metrics = {
-      securityIssues: findings.security.length,
-      complexityHotspots: findings.complexity.length,
-      manualMigrationWeeks: effort.manualMigrationWeeks,
-      codexAssistedWeeks: effort.codexAssistedWeeks,
-      maintainabilityGainPercent: effort.maintainabilityGainPercent,
-      readinessScore: effort.readinessScore
-    };
-
-    return {
-      repoUrl,
-      analyzedAt: new Date().toISOString(),
-      sourceType: resolved.sourceType,
-      detectedProjectType,
-      analyzedFilesCount: files.length,
-      currentVersion: primaryTechnology.currentVersion || versions.currentVersion,
-      targetVersion: primaryTechnology.targetVersions?.[0] || versions.targetVersions[0],
-      availableTargetVersions: primaryTechnology.targetVersions || versions.targetVersions,
-      database: databases.length > 0 ? databases.map((item) => item.title).join(", ") : primaryDatabase.title,
-      readinessScore: effort.readinessScore,
-      metrics,
-      technologies,
-      databases,
-      detectedLibraries,
-      findings,
-      roadmap,
-      effort,
-      docsRows: buildDocsRows(documentationSections, technologies, databases),
-      roadmapSections: roadmap.phases.map((phase) => ({
-        title: phase.title,
-        detail: phase.summary,
-        meta: "Planned phase"
-      })),
-      upgradePlan: roadmap.phases.map((phase) => ({
-        phase: phase.title,
-        detail: phase.summary
-      })),
-      securityHotspots: findings.security.map((item) => item.summary),
-      complexityHotspots: findings.complexity.map((item) => item.summary),
-      databaseNotes,
-      documentationSections,
-      canAutomate: [
-        "Dependency inventory and version mapping",
-        "Upgrade sequencing and risk summaries",
-        "Documentation draft generation",
-        "Sample modernized UI scaffolding"
-      ],
-      cannotAutomate: [
-        "Business-rule validation for high-risk workflows",
-        "Manual sign-off for schema-breaking database changes",
-        "Production cutover planning and rollback rehearsal"
-      ],
-      canAccelerate: [
-        "Dependency inventory and version mapping",
-        "Upgrade sequencing and risk summaries",
-        "Documentation draft generation",
-        "Sample modernized UI scaffolding"
-      ],
-      sampleAppPreview: buildSamplePreview(detectedProjectType)
-    };
+    return await callback(resolved);
   } finally {
     if (resolved.cleanup) {
       await resolved.cleanup();
     }
   }
+}
+
+async function scanRepository({ repoPath, projectTypeHint, databaseHint }) {
+  const files = await listFiles(repoPath);
+  const manifests = await readRelevantFiles(repoPath, files);
+  const detectedProjectType = detectProjectType(manifests, projectTypeHint);
+  const versions = detectVersions(manifests, detectedProjectType);
+  const technologies = detectTechnologies(manifests, detectedProjectType, versions);
+  const databases = detectDatabases(manifests, databaseHint);
+  const detectedLibraries = detectLibraries(manifests, technologies);
+
+  return {
+    repoPath,
+    files,
+    manifests,
+    detectedProjectType,
+    versions,
+    technologies,
+    databases,
+    detectedLibraries,
+    documentationSections: buildDocumentationSections(manifests, repoPath),
+    databaseNotes: buildDatabaseNotes(manifests, databases)
+  };
 }
 
 async function resolveRepository(repoUrl) {
@@ -968,6 +1011,626 @@ function buildSamplePreview(projectType) {
   };
 }
 
+function buildQuickReport(scan, context) {
+  const targetOptions = buildTargetOptions(scan.technologies, scan.databases, scan.detectedLibraries);
+  const primaryTechnology = scan.technologies[0] ?? {
+    key: scan.detectedProjectType,
+    label: scan.detectedProjectType === "java" ? "Java" : scan.detectedProjectType === "angular" ? "Angular" : "React",
+    currentVersion: scan.versions.currentVersion,
+    targetVersions: scan.versions.targetVersions
+  };
+  const primaryDatabase = scan.databases[0] ?? { key: "none", title: "No database selected" };
+  const primaryTargetVersions = primaryTechnology.targetVersions || scan.versions.targetVersions;
+
+  return {
+    repoUrl: context.repoUrl,
+    analyzedAt: new Date().toISOString(),
+    sourceType: context.sourceType,
+    analysisMode: "quick",
+    detectedProjectType: scan.detectedProjectType,
+    analyzedFilesCount: scan.files.length,
+    currentVersion: primaryTechnology.currentVersion || scan.versions.currentVersion,
+    targetVersion: primaryTargetVersions[0] || null,
+    availableTargetVersions: primaryTargetVersions,
+    database: scan.databases.length > 0 ? scan.databases.map((item) => item.title).join(", ") : primaryDatabase.title,
+    technologies: scan.technologies,
+    databases: scan.databases,
+    detectedLibraries: scan.detectedLibraries,
+    targetOptions,
+    summary: buildQuickSummary(scan, primaryTechnology, primaryDatabase),
+    quickInsights: buildQuickInsights(scan, primaryTechnology, primaryDatabase),
+    metrics: {
+      filesScanned: scan.files.length,
+      technologiesDetected: scan.technologies.length,
+      databasesDetected: scan.databases.length,
+      librariesDetected: scan.detectedLibraries.length
+    },
+    sampleAppPreview: buildSamplePreview(scan.detectedProjectType)
+  };
+}
+
+function buildDeepReport(scan, context) {
+  const targetOptions = buildTargetOptions(scan.technologies, scan.databases, scan.detectedLibraries);
+  const selectedTargets = context.selectedTargets || normalizeTargetSelections({});
+  const selectedTargetVersions = buildSelectedTargetVersions(scan, selectedTargets);
+  const primaryTechnology = scan.technologies[0] ?? {
+    key: scan.detectedProjectType,
+    label: scan.detectedProjectType === "java" ? "Java" : scan.detectedProjectType === "angular" ? "Angular" : "React",
+    currentVersion: scan.versions.currentVersion,
+    targetVersions: scan.versions.targetVersions
+  };
+  const primaryDatabase = scan.databases[0] ?? {
+    key: "none",
+    title: "No database selected"
+  };
+  const effectiveTargetVersions = selectedTargetVersions.technologies[primaryTechnology.key] || primaryTechnology.targetVersions || scan.versions.targetVersions;
+  const effectiveVersions = {
+    ...scan.versions,
+    targetVersions: effectiveTargetVersions
+  };
+  const findings = buildFindings({
+    manifests: scan.manifests,
+    projectType: scan.detectedProjectType,
+    technologies: scan.technologies,
+    databases: scan.databases,
+    detectedLibraries: scan.detectedLibraries,
+    versions: effectiveVersions
+  });
+  const roadmap = buildRoadmap(scan.detectedProjectType, effectiveVersions, scan.technologies, scan.databases, findings);
+  const effort = buildEffort({
+    fileCount: scan.files.length,
+    projectType: scan.detectedProjectType,
+    findings,
+    technologies: scan.technologies,
+    databases: scan.databases
+  });
+  const metrics = {
+    securityIssues: findings.security.length,
+    complexityHotspots: findings.complexity.length,
+    manualMigrationWeeks: effort.manualMigrationWeeks,
+    codexAssistedWeeks: effort.codexAssistedWeeks,
+    maintainabilityGainPercent: effort.maintainabilityGainPercent,
+    readinessScore: effort.readinessScore
+  };
+
+  return {
+    repoUrl: context.repoUrl,
+    analyzedAt: new Date().toISOString(),
+    sourceType: context.sourceType,
+    analysisMode: "deep",
+    detectedProjectType: scan.detectedProjectType,
+    analyzedFilesCount: scan.files.length,
+    currentVersion: primaryTechnology.currentVersion || scan.versions.currentVersion,
+    targetVersion: effectiveTargetVersions[0] || null,
+    availableTargetVersions: primaryTechnology.targetVersions || scan.versions.targetVersions,
+    selectedTargetVersions,
+    database: scan.databases.length > 0 ? scan.databases.map((item) => item.title).join(", ") : primaryDatabase.title,
+    readinessScore: effort.readinessScore,
+    metrics,
+    technologies: scan.technologies,
+    databases: scan.databases,
+    detectedLibraries: scan.detectedLibraries,
+    targetOptions,
+    findings,
+    roadmap,
+    effort,
+    docsRows: buildDocsRows(scan.documentationSections, scan.technologies, scan.databases),
+    roadmapSections: roadmap.phases.map((phase) => ({
+      title: phase.title,
+      detail: phase.summary,
+      meta: "Planned phase"
+    })),
+    upgradePlan: roadmap.phases.map((phase) => ({
+      phase: phase.title,
+      detail: phase.summary
+    })),
+    securityHotspots: findings.security.map((item) => item.summary),
+    complexityHotspots: findings.complexity.map((item) => item.summary),
+    databaseNotes: scan.databaseNotes,
+    documentationSections: scan.documentationSections,
+    canAutomate: [
+      "Dependency inventory and version mapping",
+      "Upgrade sequencing and risk summaries",
+      "Documentation draft generation",
+      "Sample modernized UI scaffolding"
+    ],
+    cannotAutomate: [
+      "Business-rule validation for high-risk workflows",
+      "Manual sign-off for schema-breaking database changes",
+      "Production cutover planning and rollback rehearsal"
+    ],
+    canAccelerate: [
+      "Dependency inventory and version mapping",
+      "Upgrade sequencing and risk summaries",
+      "Documentation draft generation",
+      "Sample modernized UI scaffolding"
+    ],
+    sampleAppPreview: buildSamplePreview(scan.detectedProjectType)
+  };
+}
+
+function buildQuickSummary(scan, primaryTechnology, primaryDatabase) {
+  const technologies = scan.technologies.filter((item) => ["java", "angular", "react"].includes(item.key)).map((item) => item.label);
+  const databaseNames = scan.databases.filter((item) => item.key !== "none").map((item) => item.title);
+  const librariesCount = scan.detectedLibraries.length;
+
+  return {
+    headline: `Quick scan found ${technologies.length > 0 ? technologies.join(", ") : "a legacy stack"} and ${databaseNames.length > 0 ? databaseNames.join(", ") : "no database marker"} in the repository.`,
+    nextStep: "Use the target selectors to choose the desired modernization baseline, then run deep analysis for findings and roadmap output.",
+    focus: `${primaryTechnology.label} and ${primaryDatabase.title} are the main anchors for the next step.`,
+    libraryNote: librariesCount > 0 ? `${librariesCount} libraries were detected and can be reviewed in the target section.` : "No package libraries were detected in this quick pass."
+  };
+}
+
+function buildQuickInsights(scan, primaryTechnology, primaryDatabase) {
+  const insights = [
+    `${scan.files.length} files were scanned for stack and dependency signals.`,
+    `Primary runtime or UI stack: ${primaryTechnology.label}.`
+  ];
+
+  if (primaryTechnology.currentVersion) {
+    insights.push(`Current version baseline: ${primaryTechnology.currentVersion}.`);
+  }
+
+  if (primaryDatabase.key !== "none") {
+    insights.push(`Database signal detected: ${primaryDatabase.title}.`);
+  }
+
+  if (scan.detectedLibraries.length > 0) {
+    insights.push(`${scan.detectedLibraries.length} libraries were discovered from manifests and build files.`);
+  }
+
+  return insights;
+}
+
+function buildTargetOptions(technologies, databases, detectedLibraries) {
+  return {
+    technologies: technologies.map((item) => ({
+      key: item.key,
+      label: item.label,
+      category: item.category,
+      currentVersion: item.currentVersion,
+      targetVersions: getTargetVersionsForTechnology(item)
+    })),
+    databases: databases.map((item) => ({
+      key: item.key,
+      label: item.title,
+      targetVersions: getTargetVersionsForDatabase(item)
+    })),
+    libraries: detectedLibraries.map((item) => ({
+      key: item.name,
+      name: item.name,
+      family: item.family,
+      currentVersion: item.version || null,
+      targetVersions: getTargetVersionsForLibrary(item)
+    }))
+  };
+}
+
+function buildSelectedTargetVersions(scan, selectedTargets) {
+  return {
+    technologies: indexSelectionsByKey(scan.technologies, selectedTargets.technologies, (item) => getTargetVersionsForTechnology(item)),
+    databases: indexSelectionsByKey(scan.databases, selectedTargets.databases, (item) => getTargetVersionsForDatabase(item)),
+    libraries: indexSelectionsByKey(scan.detectedLibraries, selectedTargets.libraries, (item) => getTargetVersionsForLibrary(item))
+  };
+}
+
+function indexSelectionsByKey(items, selections, fallbackFactory) {
+  const map = {};
+
+  for (const item of items) {
+    const matchingSelection = findMatchingSelection(selections, item);
+    const selectedVersions = normalizeSelectedVersions(matchingSelection, fallbackFactory(item));
+    map[item.key || item.name] = selectedVersions;
+  }
+
+  return map;
+}
+
+function findMatchingSelection(selections, item) {
+  return selections.find((selection) => {
+    const normalizedKey = normalizeSelectionToken(selection.key || selection.id || selection.name || selection.label);
+    const normalizedLabel = normalizeSelectionToken(selection.label || selection.name);
+    const itemKey = normalizeSelectionToken(item.key || item.name || item.label);
+    const itemLabel = normalizeSelectionToken(item.label || item.title || item.name);
+    const itemFamily = normalizeSelectionToken(item.family);
+
+    return (
+      normalizedKey === itemKey ||
+      normalizedKey === itemLabel ||
+      normalizedLabel === itemKey ||
+      normalizedLabel === itemLabel ||
+      normalizedKey === itemFamily ||
+      normalizedLabel === itemFamily
+    );
+  });
+}
+
+function normalizeSelectedVersions(selection, fallbackVersions) {
+  if (!selection) {
+    return fallbackVersions;
+  }
+
+  const explicitVersion = selection.targetVersion || selection.version || selection.value || selection.selectedVersion || selection.selected;
+  if (explicitVersion) {
+    return [explicitVersion];
+  }
+
+  const explicitVersions = selection.targetVersions || selection.versions || selection.options;
+  if (Array.isArray(explicitVersions) && explicitVersions.length > 0) {
+    return explicitVersions.map((item) => (typeof item === "string" ? item : item?.label || item?.value || item?.version)).filter(Boolean);
+  }
+
+  return fallbackVersions;
+}
+
+function normalizeTargetSelections(input = {}) {
+  const selectedTargets = input.selectedTargets || input.targetSelections || {};
+
+  return {
+    technologies: normalizeSelectionList(selectedTargets.technologies || input.targetTechnologies || input.technologies),
+    databases: normalizeSelectionList(selectedTargets.databases || input.targetDatabases || input.databases),
+    libraries: normalizeSelectionList(selectedTargets.libraries || input.targetLibraries || input.libraries)
+  };
+}
+
+function normalizeSelectionList(value) {
+  if (!value) {
+    return [];
+  }
+
+  if (Array.isArray(value)) {
+    return value
+      .map((entry) => normalizeSelectionEntry(entry))
+      .filter(Boolean);
+  }
+
+  if (typeof value === "object") {
+    return Object.entries(value)
+      .map(([key, entry]) => normalizeSelectionEntry(entry, key))
+      .filter(Boolean);
+  }
+
+  return [];
+}
+
+function normalizeSelectionEntry(entry, fallbackKey) {
+  if (!entry) {
+    return null;
+  }
+
+  if (typeof entry === "string") {
+    return {
+      key: normalizeSelectionKey(fallbackKey || entry),
+      name: entry,
+      label: entry,
+      value: entry
+    };
+  }
+
+  return {
+    key: normalizeSelectionKey(entry.key || entry.id || entry.name || entry.label || fallbackKey || null),
+    name: entry.name || entry.label || entry.key || fallbackKey || null,
+    label: entry.label || entry.name || entry.key || fallbackKey || null,
+    family: entry.family || null,
+    category: entry.category || null,
+    type: entry.type || null,
+    value: entry.value || entry.targetVersion || entry.version || entry.selectedVersion || entry.target || null,
+    targetVersion: entry.targetVersion || entry.version || entry.value || entry.selectedVersion || entry.target || null,
+    targetVersions: Array.isArray(entry.targetVersions) ? entry.targetVersions : null
+  };
+}
+
+function getTargetVersionsForTechnology(item) {
+  if (item.key === "java") {
+    return targetVersionsByStack.java;
+  }
+
+  if (item.key === "angular") {
+    return targetVersionsByStack.angular;
+  }
+
+  if (item.key === "react") {
+    return targetVersionsByStack.react;
+  }
+
+  if (item.key === "spring-boot") {
+    return ["Spring Boot 3.x"];
+  }
+
+  if (item.key === "nodejs") {
+    return ["Node.js LTS"];
+  }
+
+  if (item.key === "typescript") {
+    return ["TypeScript 5.x"];
+  }
+
+  return ["Latest supported"];
+}
+
+function getTargetVersionsForDatabase(item) {
+  return databaseTargetVersionsByType[item.key] || ["Validated target version"];
+}
+
+function getTargetVersionsForLibrary(item) {
+  if (item.family === "spring") {
+    return ["Spring Framework 6.x", "Latest compatible"];
+  }
+
+  if (item.family === "angular") {
+    return targetVersionsByStack.angular;
+  }
+
+  if (item.family === "react") {
+    return targetVersionsByStack.react;
+  }
+
+  if (item.family === "typescript") {
+    return ["TypeScript 5.x"];
+  }
+
+  return ["Latest stable", "Latest compatible"];
+}
+
+async function writeGeneratedFile(rootDir, relativePath, content, createdFiles) {
+  const fullPath = path.join(rootDir, relativePath);
+  await fs.mkdir(path.dirname(fullPath), { recursive: true });
+  await fs.writeFile(fullPath, content, "utf8");
+  createdFiles.push(path.relative(rootDir, fullPath));
+}
+
+function buildGeneratedReadme({ projectName, technologies, databases, libraries }) {
+  const techLines = technologies.length > 0 ? technologies.map((item) => `- ${item.label}`).join("\n") : "- No explicit target technology";
+  const databaseLines = databases.length > 0 ? databases.map((item) => `- ${item.label}`).join("\n") : "- No explicit target database";
+  const libraryLines = libraries.length > 0 ? libraries.map((item) => `- ${item.name}${item.value ? ` (${item.value})` : ""}`).join("\n") : "- No explicit target library";
+
+  return [
+    `# ${projectName}`,
+    "",
+    "This scaffold was generated by LegacyModernizeAI to preview a modernized target-state application.",
+    "",
+    "## Target technologies",
+    techLines,
+    "",
+    "## Target databases",
+    databaseLines,
+    "",
+    "## Target libraries",
+    libraryLines,
+    "",
+    "## Folder layout",
+    "- `backend-java/` for Java modernization samples",
+    "- `frontend-angular/` for Angular modernization samples",
+    "- `frontend-react/` for React modernization samples",
+    "- `database/` for schema and migration notes",
+    "",
+    "## Notes",
+    "This is intentionally small but believable so the hackathon demo can show a generated target project without needing a full production build."
+  ].join("\n");
+}
+
+async function writeJavaSample(rootDir, createdFiles) {
+  const javaDir = path.join(rootDir, "backend-java");
+  await writeGeneratedFile(
+    javaDir,
+    "pom.xml",
+    [
+      "<project xmlns=\"http://maven.apache.org/POM/4.0.0\" xmlns:xsi=\"http://www.w3.org/2001/XMLSchema-instance\"",
+      "  xsi:schemaLocation=\"http://maven.apache.org/POM/4.0.0 http://maven.apache.org/xsd/maven-4.0.0.xsd\">",
+      "  <modelVersion>4.0.0</modelVersion>",
+      "  <groupId>com.legacymodernize</groupId>",
+      "  <artifactId>modernized-java-service</artifactId>",
+      "  <version>0.1.0</version>",
+      "  <properties>",
+      "    <java.version>21</java.version>",
+      "    <spring-boot.version>3.3.0</spring-boot.version>",
+      "  </properties>",
+      "  <dependencies>",
+      "    <dependency>",
+      "      <groupId>org.springframework.boot</groupId>",
+      "      <artifactId>spring-boot-starter-web</artifactId>",
+      "    </dependency>",
+      "    <dependency>",
+      "      <groupId>org.springframework.boot</groupId>",
+      "      <artifactId>spring-boot-starter-test</artifactId>",
+      "      <scope>test</scope>",
+      "    </dependency>",
+      "  </dependencies>",
+      "</project>",
+      ""
+    ].join("\n"),
+    createdFiles
+  );
+
+  await writeGeneratedFile(
+    javaDir,
+    "src/main/java/com/legacymodernize/app/ModernizedApplication.java",
+    [
+      "package com.legacymodernize.app;",
+      "",
+      "public class ModernizedApplication {",
+      "  public static void main(String[] args) {",
+      "    System.out.println(\"Modernized Java service ready for upgrade validation.\");",
+      "  }",
+      "}",
+      ""
+    ].join("\n"),
+    createdFiles
+  );
+
+  await writeGeneratedFile(
+    javaDir,
+    "src/main/java/com/legacymodernize/app/web/StatusController.java",
+    [
+      "package com.legacymodernize.app.web;",
+      "",
+      "public class StatusController {",
+      "  public String health() {",
+      "    return \"ok\";",
+      "  }",
+      "}",
+      ""
+    ].join("\n"),
+    createdFiles
+  );
+}
+
+async function writeAngularSample(rootDir, createdFiles) {
+  const angularDir = path.join(rootDir, "frontend-angular");
+  await writeGeneratedFile(
+    angularDir,
+    "package.json",
+    JSON.stringify(
+      {
+        name: "modernized-angular-workspace",
+        private: true,
+        version: "0.1.0",
+        scripts: {
+          start: "ng serve",
+          build: "ng build"
+        },
+        dependencies: {
+          "@angular/core": "^20.0.0",
+          "@angular/common": "^20.0.0",
+          "@angular/platform-browser": "^20.0.0",
+          "rxjs": "^7.8.1",
+          "zone.js": "^0.15.0"
+        },
+        devDependencies: {
+          "@angular/cli": "^20.0.0",
+          "typescript": "^5.6.0"
+        }
+      },
+      null,
+      2
+    ) + "\n",
+    createdFiles
+  );
+
+  await writeGeneratedFile(
+    angularDir,
+    "src/app/app.component.ts",
+    [
+      "export class AppComponent {",
+      "  title = 'Modernized Angular workspace';",
+      "}",
+      ""
+    ].join("\n"),
+    createdFiles
+  );
+
+  await writeGeneratedFile(
+    angularDir,
+    "src/app/app.component.html",
+    "<main class=\"workspace\"><h1>Modernized Angular workspace</h1><p>Target-ready UI shell generated by LegacyModernizeAI.</p></main>\n",
+    createdFiles
+  );
+}
+
+async function writeReactSample(rootDir, createdFiles) {
+  const reactDir = path.join(rootDir, "frontend-react");
+  await writeGeneratedFile(
+    reactDir,
+    "package.json",
+    JSON.stringify(
+      {
+        name: "modernized-react-workspace",
+        private: true,
+        version: "0.1.0",
+        scripts: {
+          dev: "vite",
+          build: "vite build"
+        },
+        dependencies: {
+          react: "^19.0.0",
+          "react-dom": "^19.0.0",
+          vite: "^6.0.0"
+        }
+      },
+      null,
+      2
+    ) + "\n",
+    createdFiles
+  );
+
+  await writeGeneratedFile(
+    reactDir,
+    "src/App.jsx",
+    [
+      "export default function App() {",
+      "  return (",
+      "    <main>",
+      "      <h1>Modernized React workspace</h1>",
+      "      <p>Generated sample output ready for migration review.</p>",
+      "    </main>",
+      "  );",
+      "}",
+      ""
+    ].join("\n"),
+    createdFiles
+  );
+}
+
+async function writeDatabaseSample(rootDir, databases, createdFiles) {
+  const databaseDir = path.join(rootDir, "database");
+  const databaseName = databases[0]?.label || "Database";
+  await writeGeneratedFile(
+    databaseDir,
+    "schema.sql",
+    [
+      `-- ${databaseName} modernization sample`,
+      "CREATE TABLE modernization_audit (",
+      "  audit_id INT PRIMARY KEY,",
+      "  source_system VARCHAR(120) NOT NULL,",
+      "  target_state VARCHAR(120) NOT NULL,",
+      "  created_at TIMESTAMP NOT NULL",
+      ");",
+      ""
+    ].join("\n"),
+    createdFiles
+  );
+}
+
+async function writeLibraryNotes(rootDir, libraries, createdFiles) {
+  const notesDir = path.join(rootDir, "libraries");
+  await writeGeneratedFile(
+    notesDir,
+    "target-libraries.json",
+    `${JSON.stringify(
+      libraries.map((item) => ({
+        name: item.name,
+        currentVersion: item.currentVersion || null,
+        targetVersions: item.targetVersions || []
+      })),
+      null,
+      2
+    )}\n`,
+    createdFiles
+  );
+}
+
+function sanitizeFolderName(value) {
+  return value
+    .toLowerCase()
+    .replace(/[^a-z0-9]+/g, "-")
+    .replace(/^-+|-+$/g, "")
+    .slice(0, 48) || "modernized-sample";
+}
+
+function uniqueLabels(entries) {
+  const seen = new Map();
+
+  for (const entry of entries) {
+    const key = normalizeSelectionToken(entry.key || entry.name || entry.label);
+    if (!seen.has(key)) {
+      seen.set(key, entry);
+    }
+  }
+
+  return [...seen.values()];
+}
+
 function safeJsonParse(value) {
   if (!value) {
     return null;
@@ -1180,4 +1843,62 @@ function extractVersion(value) {
 
 function escapeRegExp(value) {
   return value.replace(/[.*+?^${}()|[\]\\]/g, "\\$&");
+}
+
+function normalizeSelectionToken(value) {
+  return (value || "").toString().trim().toLowerCase();
+}
+
+function normalizeSelectionKey(value) {
+  const token = normalizeSelectionToken(value);
+
+  if (!token) {
+    return "";
+  }
+
+  if (token.includes("java")) {
+    return "java";
+  }
+
+  if (token.includes("angular")) {
+    return "angular";
+  }
+
+  if (token.includes("react")) {
+    return "react";
+  }
+
+  if (token.includes("spring boot") || token.includes("spring-boot")) {
+    return "spring-boot";
+  }
+
+  if (token.includes("typescript")) {
+    return "typescript";
+  }
+
+  if (token.includes("node")) {
+    return "nodejs";
+  }
+
+  if (token.includes("oracle")) {
+    return "oracle";
+  }
+
+  if (token.includes("sql server") || token.includes("mssql")) {
+    return "mssql";
+  }
+
+  if (token.includes("postgres")) {
+    return "postgres";
+  }
+
+  if (token.includes("mysql")) {
+    return "mysql";
+  }
+
+  if (token.includes("sqlite")) {
+    return "sqlite";
+  }
+
+  return token.replace(/[^a-z0-9]+/g, "-").replace(/^-+|-+$/g, "") || token;
 }

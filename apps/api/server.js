@@ -2,7 +2,7 @@ import cors from "cors";
 import express from "express";
 import fs from "node:fs";
 import path from "node:path";
-import { analyzeRepository } from "./analyzer.js";
+import { analyzeRepository, analyzeRepositoryDeep, analyzeRepositoryQuick, generateSampleProject } from "./analyzer.js";
 
 const app = express();
 const port = process.env.PORT || 4000;
@@ -53,14 +53,18 @@ app.get("/api/demo-analysis", async (_, res) => {
   }
 });
 
-app.post("/api/analyze", async (req, res) => {
-  const { repoUrl, projectType = "java", database = "oracle" } = req.body ?? {};
+app.post("/api/analyze/quick", async (req, res) => {
+  const { repoUrl, projectType = "java", database = "oracle", targetSelections, targetTechnologies, targetDatabases, targetLibraries } = req.body ?? {};
 
   try {
-    const report = await analyzeRepository({
+    const report = await analyzeRepositoryQuick({
       repoUrl,
       projectTypeHint: projectType,
-      databaseHint: database
+      databaseHint: database,
+      targetSelections,
+      targetTechnologies,
+      targetDatabases,
+      targetLibraries
     });
 
     res.json(report);
@@ -68,6 +72,94 @@ app.post("/api/analyze", async (req, res) => {
     res.status(400).json({
       error: error.message,
       repoUrl
+    });
+  }
+});
+
+app.post("/api/analyze/deep", async (req, res) => {
+  const { repoUrl, projectType = "java", database = "oracle", targetSelections, targetTechnologies, targetDatabases, targetLibraries } = req.body ?? {};
+
+  try {
+    const report = await analyzeRepositoryDeep({
+      repoUrl,
+      projectTypeHint: projectType,
+      databaseHint: database,
+      targetSelections,
+      targetTechnologies,
+      targetDatabases,
+      targetLibraries
+    });
+
+    res.json(report);
+  } catch (error) {
+    res.status(400).json({
+      error: error.message,
+      repoUrl
+    });
+  }
+});
+
+app.post("/api/analyze", async (req, res) => {
+  const { repoUrl, projectType = "java", database = "oracle", targetSelections, targetTechnologies, targetDatabases, targetLibraries } = req.body ?? {};
+
+  try {
+    const report = await analyzeRepositoryDeep({
+      repoUrl,
+      projectTypeHint: projectType,
+      databaseHint: database,
+      targetSelections,
+      targetTechnologies,
+      targetDatabases,
+      targetLibraries
+    });
+
+    res.json(report);
+  } catch (error) {
+    res.status(400).json({
+      error: error.message,
+      repoUrl
+    });
+  }
+});
+
+app.post("/api/sample-project", async (req, res) => {
+  const { projectName, targetSelections, targetTechnologies, targetDatabases, targetLibraries } = req.body ?? {};
+
+  try {
+    const sample = await generateSampleProject({
+      projectName,
+      targetSelections,
+      targetTechnologies,
+      targetDatabases,
+      targetLibraries
+    });
+
+    res.json(sample);
+  } catch (error) {
+    res.status(400).json({
+      error: error.message,
+      projectName
+    });
+  }
+});
+
+app.post("/api/generate-sample", async (req, res) => {
+  const { projectName, targetSelections, targetTechnologies, targetDatabases, targetLibraries } = req.body ?? {};
+
+  try {
+    const sample = await generateSampleProject({
+      projectName,
+      targetSelections,
+      targetTechnologies,
+      targetDatabases,
+      targetLibraries
+    });
+
+    res.json(sample);
+  } catch (error) {
+    res.status(400).json({
+      error: error.message,
+      projectName
     });
   }
 });
