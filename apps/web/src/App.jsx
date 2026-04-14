@@ -272,6 +272,8 @@ export default function App() {
   const [activeView, setActiveView] = useState("home");
   const [report, setReport] = useState(mockReport);
   const [repoUrl, setRepoUrl] = useState("");
+  const [samples, setSamples] = useState([]);
+  const [showSampleBrowser, setShowSampleBrowser] = useState(false);
   const [quickComplete, setQuickComplete] = useState(false);
   const [deepComplete, setDeepComplete] = useState(false);
   const [loadingQuick, setLoadingQuick] = useState(false);
@@ -293,6 +295,18 @@ export default function App() {
     : quickComplete
       ? "Targets ready"
       : "Awaiting quick analysis";
+
+  useEffect(() => {
+    (async () => {
+      try {
+        const response = await fetch(`${apiBase}/api/samples`);
+        if (!response.ok) throw new Error("samples failed");
+        setSamples(await response.json());
+      } catch {
+        setSamples([]);
+      }
+    })();
+  }, []);
 
   useEffect(() => {
     const nextTechTargets = {};
@@ -377,6 +391,11 @@ export default function App() {
     setTechnologyTargetsState({});
     setDatabaseTargetsState({});
     setLibraryTargetsState({});
+  }
+
+  function applySample(sample) {
+    setRepoUrl(sample.repoUrl || "");
+    setShowSampleBrowser(false);
   }
 
   async function runQuickAnalysis(event) {
@@ -561,10 +580,28 @@ export default function App() {
                     placeholder="D:\\Project\\LegacyModernizeAI\\sample_project\\java-oracle-legacy"
                   />
                 </FieldGroup>
-                <button type="submit" disabled={loadingQuick || !repoUrl.trim()}>
-                  {loadingQuick ? "Running quick analysis..." : "Quick analysis"}
-                </button>
+                <div className="launch-actions">
+                  <button type="button" className="secondary-button" onClick={() => setShowSampleBrowser((current) => !current)}>
+                    {showSampleBrowser ? "Hide sample folders" : "Browse sample folders"}
+                  </button>
+                  <button type="submit" disabled={loadingQuick || !repoUrl.trim()}>
+                    {loadingQuick ? "Running quick analysis..." : "Quick analysis"}
+                  </button>
+                </div>
               </form>
+
+              {showSampleBrowser ? (
+                <div className="sample-browser">
+                  <span>Sample folders</span>
+                  <div className="sample-browser-list">
+                    {samples.length ? samples.map((sample) => (
+                      <button key={sample.label} type="button" className="sample-pill" onClick={() => applySample(sample)}>
+                        {sample.label}
+                      </button>
+                    )) : <p className="muted">Sample folders are temporarily unavailable. Paste a path manually.</p>}
+                  </div>
+                </div>
+              ) : null}
 
               <aside className="spotlight-card">
                 <span>Enterprise outcomes</span>

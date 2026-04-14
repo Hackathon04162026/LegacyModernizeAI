@@ -363,18 +363,14 @@ button:focus-visible {
 
 .quick-form {
   display: grid;
-  grid-template-columns: minmax(0, 1fr) auto;
+  grid-template-columns: 1fr;
   gap: 14px;
-  align-items: end;
+  align-items: start;
 }
 
 .launch-grid {
   grid-template-columns: minmax(0, 1.15fr) minmax(320px, 0.85fr);
-  align-items: stretch;
-}
-
-.quick-form-wide {
-  min-height: 100%;
+  align-items: start;
 }
 
 .spotlight-card {
@@ -427,6 +423,53 @@ button:focus-visible {
   margin: 6px 0 0;
   color: rgba(255, 245, 239, 0.84);
   line-height: 1.5;
+}
+
+.launch-actions {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 12px;
+  align-items: center;
+}
+
+.secondary-button {
+  background: rgba(255, 255, 255, 0.9);
+  color: var(--text);
+  border: 1px solid rgba(31, 41, 55, 0.12);
+  box-shadow: none;
+}
+
+.sample-browser {
+  display: grid;
+  gap: 12px;
+  margin-top: 4px;
+  padding: 16px 18px;
+  border-radius: 18px;
+  border: 1px dashed rgba(31, 41, 55, 0.18);
+  background: rgba(255, 255, 255, 0.68);
+}
+
+.sample-browser > span {
+  display: block;
+  text-transform: uppercase;
+  letter-spacing: 0.14em;
+  font-size: 0.72rem;
+  font-weight: 700;
+  color: var(--accent);
+}
+
+.sample-browser-list {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 10px;
+}
+
+.sample-pill {
+  padding: 10px 14px;
+  background: rgba(255, 255, 255, 0.95);
+  color: var(--text);
+  border: 1px solid rgba(31, 41, 55, 0.1);
+  box-shadow: none;
 }
 
 .insight-ribbon {
