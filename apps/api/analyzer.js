@@ -793,32 +793,40 @@ function buildDocumentationSections(manifests, rootDir) {
 function buildDocsRows(documentationSections, technologies, databases) {
   const primaryTech = technologies[0]?.label || "Application stack";
   const databaseLabel = databases.length > 0 ? databases.map((item) => item.title).join(", ") : "No database selected";
-  const confluenceLink = "https://confluence.example.com/display/LM/Modernization+Workspace";
+  const confluenceLinks = {
+    workspace: "https://capgemini-team-hacakathon.atlassian.net/wiki/spaces/MFS/pages/524289/LegacyModernizeAI+Workspace",
+    architecture: "https://capgemini-team-hacakathon.atlassian.net/wiki/spaces/MFS/pages/557057/Project+Intake+Scan+Summary",
+    technology: "https://capgemini-team-hacakathon.atlassian.net/wiki/spaces/MFS/pages/589825/Technology+Library+Detection",
+    findings: "https://capgemini-team-hacakathon.atlassian.net/wiki/spaces/MFS/pages/295143/Security+Complexity+PII+Findings",
+    roadmap: "https://capgemini-team-hacakathon.atlassian.net/wiki/spaces/MFS/pages/622593/Migration+Roadmap+Effort+Estimate",
+    upgrades: "https://capgemini-team-hacakathon.atlassian.net/wiki/spaces/MFS/pages/655361/Upgrade+Recommendations",
+    documentation: "https://capgemini-team-hacakathon.atlassian.net/wiki/spaces/MFS/pages/557072/Generated+Developer+Documentation"
+  };
 
   return [
     {
       title: "Architecture summary",
       detail: `Capture the current ${primaryTech} boundaries, key modules, and migration assumptions.`,
       meta: "Architecture",
-      link: confluenceLink
+      link: confluenceLinks.architecture
     },
     {
       title: "Database touchpoints",
       detail: `Document procedures, schema dependencies, and rollout caveats for ${databaseLabel}.`,
       meta: "Data",
-      link: confluenceLink
+      link: confluenceLinks.findings
     },
     {
       title: "Upgrade decisions",
       detail: documentationSections[1] || "Track runtime, framework, and dependency decisions with rationale.",
       meta: "Engineering",
-      link: confluenceLink
+      link: confluenceLinks.upgrades
     },
     {
       title: "Onboarding notes",
       detail: documentationSections[2] || "Summarize how new developers build, test, and navigate the system.",
       meta: "Enablement",
-      link: confluenceLink
+      link: confluenceLinks.documentation
     }
   ];
 }

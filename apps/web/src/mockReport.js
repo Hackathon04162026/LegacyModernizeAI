@@ -68,9 +68,9 @@ export const mockReport = {
     "Onboarding guide for build, test, and deployment flow"
   ],
   docsRows: [
-    { title: "Service ownership", detail: "Capture the primary owner, boundaries, and escalation path.", meta: "Architecture", link: "https://confluence.example.com/display/LM/Modernization+Workspace" },
-    { title: "Upgrade notes", detail: "Summarize API replacements and configuration changes.", meta: "Engineering", link: "https://confluence.example.com/display/LM/Modernization+Workspace" },
-    { title: "Release guide", detail: "Document build, test, deploy, and rollback steps.", meta: "Operations", link: "https://confluence.example.com/display/LM/Modernization+Workspace" }
+    { title: "Service ownership", detail: "Capture the primary owner, boundaries, and escalation path.", meta: "Architecture", link: "https://capgemini-team-hacakathon.atlassian.net/wiki/spaces/MFS/pages/557057/Project+Intake+Scan+Summary" },
+    { title: "Upgrade notes", detail: "Summarize API replacements and configuration changes.", meta: "Engineering", link: "https://capgemini-team-hacakathon.atlassian.net/wiki/spaces/MFS/pages/655361/Upgrade+Recommendations" },
+    { title: "Release guide", detail: "Document build, test, deploy, and rollback steps.", meta: "Operations", link: "https://capgemini-team-hacakathon.atlassian.net/wiki/spaces/MFS/pages/557072/Generated+Developer+Documentation" }
   ],
   roadmapSections: [
     { title: "Inventory and baseline", detail: "Confirm packages, database touchpoints, and runtime constraints.", meta: "Planned phase" },
