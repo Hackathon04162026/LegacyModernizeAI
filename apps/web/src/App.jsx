@@ -309,6 +309,7 @@ export default function App() {
   const [loadingDeep, setLoadingDeep] = useState(false);
   const [quickError, setQuickError] = useState("");
   const [quickProgress, setQuickProgress] = useState(0);
+  const [showQuickResults, setShowQuickResults] = useState(false);
   const [approvalChoice, setApprovalChoice] = useState("no");
   const [generatedSample, setGeneratedSample] = useState(createEmptyGeneratedSample());
   const [generatedReady, setGeneratedReady] = useState(false);
@@ -320,7 +321,7 @@ export default function App() {
   const technologies = list(report.technologies, []);
   const databases = list(report.databases, []);
   const libraries = list(report.detectedLibraries || report.libraries, []);
-  const quickHasData = quickComplete && (technologies.length > 0 || databases.length > 0 || libraries.length > 0);
+  const quickHasData = showQuickResults && quickComplete && (technologies.length > 0 || databases.length > 0 || libraries.length > 0);
 
   const bannerSummary = deepComplete
     ? "Deep analysis unlocked"
@@ -432,6 +433,7 @@ export default function App() {
     setDeepComplete(false);
     setQuickError("");
     setQuickProgress(0);
+    setShowQuickResults(false);
     setGeneratedReady(false);
     setApprovalChoice("no");
     setGeneratedSample(createEmptyGeneratedSample());
@@ -451,9 +453,15 @@ export default function App() {
     setDeepComplete(false);
     setQuickError("");
     setQuickProgress(6);
+    setShowQuickResults(false);
     setGeneratedReady(false);
     setApprovalChoice("no");
     setGeneratedSample(createEmptyGeneratedSample());
+    setReport({
+      ...mockReport,
+      repoUrl,
+      sourceType: "loading"
+    });
     const progressTimer = window.setInterval(() => {
       setQuickProgress((current) => {
         if (current >= 90) return current;
@@ -484,12 +492,16 @@ export default function App() {
       setQuickProgress(100);
       setQuickComplete(true);
       setInitialSelections(data);
+      window.setTimeout(() => {
+        setShowQuickResults(true);
+      }, 180);
       setActiveView("home");
     } catch {
       window.clearInterval(progressTimer);
       setQuickComplete(false);
       setDeepComplete(false);
       setQuickError("Quick analysis failed. Check that the API is running and the repository path is valid, then try again.");
+      setShowQuickResults(false);
       setInitialSelections({ ...mockReport, repoUrl, analyzedAt: null, sourceType: "manual" });
       setActiveView("home");
     } finally {
@@ -850,18 +862,11 @@ export default function App() {
           ) : null}
 
           {loadingQuick ? (
-            <>
-              <LoadingBlock
-                title="Quick analysis in progress"
-                description="Detected technologies, libraries, databases, and target selectors will appear as soon as the quick scan completes."
-                progress={quickProgress}
-              />
-              <LoadingBlock
-                title="Preparing target selectors"
-                description="Target technology, database, and library versions are being assembled from the detected stack."
-                progress={quickProgress}
-              />
-            </>
+            <LoadingBlock
+              title="Quick analysis in progress"
+              description="Detected technologies, libraries, databases, and target selectors will appear only after the scan reaches 100%."
+              progress={quickProgress}
+            />
           ) : null}
         </div>
       ) : deepComplete ? renderPage() : (
